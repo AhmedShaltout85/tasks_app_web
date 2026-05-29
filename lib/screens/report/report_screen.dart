@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:responsive_framework/responsive_framework.dart';
+import 'package:tasks_app/common_widgets/responsive/app_sidebar.dart';
 import 'package:tasks_app/common_widgets/responsive/responsive_content_container.dart';
 import 'package:tasks_app/common_widgets/responsive/responsive_scaffold.dart';
 import 'package:tasks_app/common_widgets/resuable_widgets/reusable_toast.dart';
@@ -14,7 +15,8 @@ import 'package:tasks_app/models/daily_task_model.dart';
 import 'package:tasks_app/screens/report/widgets/generate_pdf.dart';
 
 class ReportScreen extends StatefulWidget {
-  const ReportScreen({super.key});
+  final bool embedded;
+  const ReportScreen({super.key, this.embedded = false});
 
   @override
   State<ReportScreen> createState() => _ReportScreenState();
@@ -289,26 +291,22 @@ class _ReportScreenState extends State<ReportScreen>
   @override
   Widget build(BuildContext context) {
     final isDesktop = ResponsiveBreakpoints.of(context).isDesktop;
+    final colorScheme = Theme.of(context).colorScheme;
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final isAdmin = userProvider.currentUser?.role == 'ADMIN' ||
+        userProvider.currentUser?.role == 'MANAGER';
+    final selectedIndex = isAdmin ? 5 : 2;
 
     return ResponsiveScaffold(
+      sidebarContent: widget.embedded
+          ? null
+          : buildAppSidebar(
+              context: context,
+              selectedIndex: selectedIndex,
+            ),
       appBar: AppBar(
         leading: const SizedBox.shrink(),
-        title: const Text('تقرير المهام اليومية'),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(4),
-          child: Container(
-            height: 4,
-            decoration: BoxDecoration(
-              borderRadius: const BorderRadius.vertical(
-                bottom: Radius.circular(4),
-              ),
-              color: Theme.of(context)
-                  .colorScheme
-                  .outlineVariant
-                  .withValues(alpha: 0.5),
-            ),
-          ),
-        ),
+        backgroundColor: Colors.transparent,
         actions: [
           Consumer<DailyTaskProvider>(
             builder: (context, taskProvider, child) {
@@ -333,7 +331,8 @@ class _ReportScreenState extends State<ReportScreen>
               );
 
               return IconButton(
-                icon: const Icon(Icons.download_rounded, size: 22),
+                icon: Icon(Icons.download_rounded,
+                    size: 22, color: colorScheme.onSurface),
                 onPressed: filteredData.isEmpty
                     ? null
                     : () {
@@ -800,7 +799,6 @@ class _ReportScreenState extends State<ReportScreen>
           },
         ),
       ),
-      drawer: null,
     );
   }
 

@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:tasks_app/common_widgets/responsive/app_sidebar.dart';
 import 'package:tasks_app/common_widgets/responsive/empty_state_widget.dart';
 import 'package:tasks_app/common_widgets/responsive/responsive_content_container.dart';
 import 'package:tasks_app/common_widgets/responsive/responsive_form_container.dart';
+import 'package:tasks_app/common_widgets/responsive/responsive_scaffold.dart';
 import 'package:tasks_app/common_widgets/resuable_widgets/reusable_toast.dart';
 import 'package:tasks_app/controller/place_name_provider.dart';
 import 'package:tasks_app/controller/theme_provider.dart';
+import 'package:tasks_app/controller/user_provider.dart';
 import 'package:tasks_app/services/connection_dialog_service.dart';
 import 'package:tasks_app/services/connectivity_service.dart';
 
@@ -326,10 +329,19 @@ class _ManagePlaceScreenState extends State<ManagePlaceScreen>
     final colorScheme = Theme.of(context).colorScheme;
     final placeColor = Colors.teal;
 
-    return Scaffold(
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final isAdmin = userProvider.currentUser?.role == 'ADMIN' ||
+        userProvider.currentUser?.role == 'MANAGER';
+    final selectedIndex = isAdmin ? 4 : 1;
+
+    return ResponsiveScaffold(
+      sidebarContent: buildAppSidebar(
+        context: context,
+        selectedIndex: selectedIndex,
+      ),
       appBar: AppBar(
         leading: const SizedBox.shrink(),
-        title: const Text('إدارة الاماكن والفروع'),
+        backgroundColor: Colors.transparent,
         actions: [
           Container(
             margin: const EdgeInsets.only(right: 8),
@@ -341,10 +353,7 @@ class _ManagePlaceScreenState extends State<ManagePlaceScreen>
                 onTap: _showAddDialog,
                 child: Container(
                   padding: const EdgeInsets.all(10),
-                  child: Icon(
-                    Icons.add_location,
-                    color: isDark ? Colors.black87 : Colors.white,
-                  ),
+                  child: Icon(Icons.add_location, color: colorScheme.onPrimary),
                 ),
               ),
             ),

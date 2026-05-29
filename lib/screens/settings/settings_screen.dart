@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:tasks_app/common_widgets/responsive/app_sidebar.dart';
 import 'package:tasks_app/common_widgets/responsive/responsive_content_container.dart';
+import 'package:tasks_app/common_widgets/responsive/responsive_scaffold.dart';
 import 'package:provider/provider.dart';
 import 'package:tasks_app/common_widgets/responsive/responsive_form_container.dart';
 import 'package:tasks_app/common_widgets/resuable_widgets/reusable_toast.dart';
@@ -10,7 +12,8 @@ import 'package:tasks_app/services/connectivity_service.dart';
 import 'package:tasks_app/utils/app_route.dart';
 
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key});
+  final bool embedded;
+  const SettingsScreen({super.key, this.embedded = false});
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -321,10 +324,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final colorScheme = Theme.of(context).colorScheme;
     final user = context.watch<UserProvider>().currentUser;
 
-    return Scaffold(
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final isAdmin = userProvider.currentUser?.role == 'ADMIN' ||
+        userProvider.currentUser?.role == 'MANAGER';
+    final selectedIndex = isAdmin ? 7 : 5;
+
+    return ResponsiveScaffold(
+      sidebarContent: widget.embedded
+          ? null
+          : buildAppSidebar(
+              context: context,
+              selectedIndex: selectedIndex,
+            ),
       appBar: AppBar(
         leading: const SizedBox.shrink(),
-        title: const Text('الضبط والاعدادات'),
+        backgroundColor: Colors.transparent,
       ),
       body: ResponsiveContentContainer(
         child: ListView(

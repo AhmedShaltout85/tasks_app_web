@@ -351,6 +351,7 @@ class _AppRecommendedDetailsScreenState
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.appName),
+        backgroundColor: Colors.transparent,
         actions: [
           // Only show add button if user is admin
           if (widget.isAdmin)
@@ -364,10 +365,7 @@ class _AppRecommendedDetailsScreenState
                   onTap: _showAddDialog,
                   child: Container(
                     padding: const EdgeInsets.all(10),
-                    child: Icon(
-                      Icons.add,
-                      color: isDark ? Colors.black87 : Colors.white,
-                    ),
+                    child: Icon(Icons.add, color: colorScheme.onPrimary),
                   ),
                 ),
               ),

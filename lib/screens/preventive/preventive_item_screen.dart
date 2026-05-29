@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:tasks_app/common_widgets/responsive/app_sidebar.dart';
 import 'package:tasks_app/common_widgets/responsive/responsive_content_container.dart';
 import 'package:tasks_app/common_widgets/responsive/responsive_form_container.dart';
+import 'package:tasks_app/common_widgets/responsive/responsive_scaffold.dart';
 import 'package:tasks_app/controller/preventive_provider.dart';
 import 'package:tasks_app/controller/about_app_provider.dart';
 import 'package:tasks_app/controller/user_provider.dart';
@@ -260,13 +262,23 @@ class _PreventiveItemScreenState extends State<PreventiveItemScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final colorScheme = Theme.of(context).colorScheme;
+    final isAdmin = userProvider.currentUser?.role == 'ADMIN' ||
+        userProvider.currentUser?.role == 'MANAGER';
+    final selectedIndex = isAdmin ? 2 : 1;
+
+    return ResponsiveScaffold(
+      sidebarContent: buildAppSidebar(
+        context: context,
+        selectedIndex: selectedIndex,
+      ),
       appBar: AppBar(
         leading: const SizedBox.shrink(),
-        title: const Text('العناصر الوقائية'),
+        backgroundColor: Colors.transparent,
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: Icon(Icons.refresh, color: colorScheme.onSurface),
             onPressed: _fetchData,
           ),
         ],

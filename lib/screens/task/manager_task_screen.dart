@@ -295,19 +295,16 @@ class _TaskScreenState extends State<ManagerTaskScreen> {
   }
 
   PreferredSizeWidget _buildAppBar() {
+    final colorScheme = Theme.of(context).colorScheme;
     return AppBar(
       leading: const SizedBox.shrink(),
-      title: const Text('المهام اليومية'),
-      bottom: const PreferredSize(
-        preferredSize: Size.fromHeight(0),
-        child: SizedBox(),
-      ),
+      backgroundColor: Colors.transparent,
       actions: [
         Stack(
           children: [
             IconButton(
               tooltip: 'تخصيص',
-              icon: const Icon(Icons.filter_list),
+              icon: Icon(Icons.filter_list, color: colorScheme.onSurface),
               onPressed: () {
                 setState(() {
                   showFilters = !showFilters;
@@ -433,11 +430,11 @@ class _TaskScreenState extends State<ManagerTaskScreen> {
           departmentsList,
         );
       case 1:
-        return const PreventiveMaintenanceReportScreen();
+        return const PreventiveMaintenanceReportScreen(embedded: true);
       case 2:
-        return const ReportScreen();
+        return const ReportScreen(embedded: true);
       case 3:
-        return const SettingsScreen();
+        return const SettingsScreen(embedded: true);
       default:
         return _buildHomeContent(
           isDark,

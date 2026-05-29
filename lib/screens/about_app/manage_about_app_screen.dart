@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:tasks_app/common_widgets/responsive/app_sidebar.dart';
 import 'package:tasks_app/common_widgets/responsive/empty_state_widget.dart';
 import 'package:tasks_app/common_widgets/responsive/responsive_content_container.dart';
 import 'package:tasks_app/common_widgets/responsive/responsive_form_container.dart';
+import 'package:tasks_app/common_widgets/responsive/responsive_scaffold.dart';
 import 'package:tasks_app/common_widgets/resuable_widgets/reusable_toast.dart';
 import 'package:tasks_app/controller/about_app_provider.dart';
 import 'package:tasks_app/controller/theme_provider.dart';
@@ -446,9 +448,19 @@ class _ManageAboutAppScreenState extends State<ManageAboutAppScreen>
     final colorScheme = Theme.of(context).colorScheme;
     final appColor = Colors.blue;
 
-    return Scaffold(
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final isAdmin = userProvider.currentUser?.role == 'ADMIN' ||
+        userProvider.currentUser?.role == 'MANAGER';
+    final selectedIndex = isAdmin ? 3 : 6;
+
+    return ResponsiveScaffold(
+      sidebarContent: buildAppSidebar(
+        context: context,
+        selectedIndex: selectedIndex,
+      ),
       appBar: AppBar(
         title: const Text('ادارة التطبيقات والاجهزة'),
+        backgroundColor: Colors.transparent,
         actions: [
           Consumer<AboutAppProvider>(
             builder: (context, provider, child) {
@@ -463,10 +475,8 @@ class _ManageAboutAppScreenState extends State<ManageAboutAppScreen>
                           onTap: _showAddDialog,
                           child: Container(
                             padding: const EdgeInsets.all(10),
-                            child: Icon(
-                              Icons.add,
-                              color: isDark ? Colors.black87 : Colors.white,
-                            ),
+                            child:
+                                Icon(Icons.add, color: colorScheme.onPrimary),
                           ),
                         ),
                       ),

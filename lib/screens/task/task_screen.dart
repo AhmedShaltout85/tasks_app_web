@@ -2,20 +2,12 @@ import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:tasks_app/common_widgets/custom_widgets/custom_drawer.dart';
 import 'package:tasks_app/common_widgets/custom_widgets/custom_bottom_sheet.dart';
-import 'package:tasks_app/common_widgets/responsive/drawer_items.dart';
+import 'package:tasks_app/common_widgets/responsive/app_sidebar.dart';
 import 'package:tasks_app/common_widgets/responsive/responsive_form_container.dart';
 import 'package:tasks_app/common_widgets/responsive/responsive_content_container.dart';
 import 'package:tasks_app/common_widgets/responsive/responsive_scaffold.dart';
 import 'package:tasks_app/common_widgets/resuable_widgets/reusable_toast.dart';
-import 'package:tasks_app/screens/about_app/manage_about_app_screen.dart';
-import 'package:tasks_app/screens/places/manage_place_screen.dart';
-import 'package:tasks_app/screens/preventive/preventive_item_screen.dart';
-import 'package:tasks_app/screens/report/preventive_maintenance_report_screen.dart';
-import 'package:tasks_app/screens/report/report_screen.dart';
-import 'package:tasks_app/screens/settings/settings_screen.dart';
-import 'package:tasks_app/screens/user/manage_user_screen.dart';
 import 'package:tasks_app/controller/about_app_provider.dart';
 import 'package:tasks_app/controller/daily_task_provider.dart';
 import 'package:tasks_app/controller/place_name_provider.dart';
@@ -255,20 +247,13 @@ class _TaskScreenState extends State<TaskScreen> {
     return ResponsiveScaffold(
       appBar: AppBar(
         leading: const SizedBox.shrink(),
-        title: const Text(
-          'المهام اليومية',
-          style: TextStyle(fontFamily: 'Cairo'),
-        ),
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(0),
-          child: SizedBox(),
-        ),
+        backgroundColor: Colors.transparent,
         actions: [
           Stack(
             children: [
               IconButton(
                 tooltip: 'تخصيص',
-                icon: const Icon(Icons.filter_list),
+                icon: Icon(Icons.filter_list, color: colorScheme.onSurface),
                 onPressed: () {
                   setState(() {
                     showFilters = !showFilters;
@@ -712,238 +697,9 @@ class _TaskScreenState extends State<TaskScreen> {
           ],
         ),
       ),
-      drawer: null,
-      sidebarContent: _buildSidebarContent(userProvider, isDark, colorScheme),
-    );
-  }
-
-  Widget _buildSidebarContent(
-    UserProvider userProvider,
-    bool isDark,
-    ColorScheme colorScheme,
-  ) {
-    final currentUser = userProvider.currentUser;
-
-    final items = [
-      DrawerItem(
-        index: 1,
-        icon: Icons.people_rounded,
-        title: 'أدارة المستخدمين',
-        onTap: () {
-          setState(() => _selectedDrawerIndex = 1);
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const ManageUserScreen()),
-          );
-        },
-      ),
-      DrawerItem(
-        index: 2,
-        icon: Icons.shield_outlined,
-        title: 'عناصر وقائية',
-        onTap: () {
-          setState(() => _selectedDrawerIndex = 2);
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (context) => const PreventiveItemScreen()),
-          );
-        },
-      ),
-      DrawerItem(
-        index: 3,
-        icon: Icons.apps_outage,
-        title: 'إدارة التطبيقات',
-        onTap: () {
-          setState(() => _selectedDrawerIndex = 3);
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (context) => const ManageAboutAppScreen()),
-          );
-        },
-      ),
-      DrawerItem(
-        index: 4,
-        icon: Icons.location_on_rounded,
-        title: 'إدارة المواقع',
-        onTap: () {
-          setState(() => _selectedDrawerIndex = 4);
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const ManagePlaceScreen()),
-          );
-        },
-      ),
-      DrawerItem(
-        index: 5,
-        icon: Icons.assessment_rounded,
-        title: 'التقارير اليومية',
-        onTap: () {
-          setState(() => _selectedDrawerIndex = 5);
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const ReportScreen()),
-          );
-        },
-      ),
-      DrawerItem(
-        index: 6,
-        icon: Icons.build_circle_outlined,
-        title: 'تقارير صيانة وقائية',
-        onTap: () {
-          setState(() => _selectedDrawerIndex = 6);
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const PreventiveMaintenanceReportScreen(),
-            ),
-          );
-        },
-      ),
-      DrawerItem(
-        index: 7,
-        icon: Icons.settings_rounded,
-        title: 'الضبط والاعدادات',
-        onTap: () {
-          setState(() => _selectedDrawerIndex = 7);
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const SettingsScreen()),
-          );
-        },
-      ),
-    ];
-
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: isDark
-              ? [colorScheme.surface, colorScheme.surface.withOpacity(0.95)]
-              : [Colors.white, Colors.grey.shade50],
-        ),
-      ),
-      child: Column(
-        children: [
-          DrawerHeaderWidget(
-            isDark: isDark,
-            colorScheme: colorScheme,
-            displayName: currentUser?.displayName ?? 'User',
-            username: currentUser?.username ?? '',
-          ),
-          Expanded(
-            child: DrawerItemsList(
-              items: items,
-              selectedIndex: _selectedDrawerIndex,
-              isDark: isDark,
-              colorScheme: colorScheme,
-              isSidebar: true,
-            ),
-          ),
-          DrawerLogoutSection(
-            isDark: isDark,
-            colorScheme: colorScheme,
-            onLogout: () {
-              _showLogoutDialog(isDark, colorScheme);
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showLogoutDialog(bool isDark, ColorScheme colorScheme) {
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: isDark ? colorScheme.surface : Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.red.shade50,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(
-                Icons.logout_rounded,
-                color: Colors.red.shade700,
-                size: 24,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Text(
-              'تسجيل الخروج',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                fontFamily: 'Cairo',
-                color: isDark ? Colors.white : Colors.black87,
-              ),
-            ),
-          ],
-        ),
-        content: Text(
-          'هل أنت متاكد أنك تريد تسجيل الخروج؟',
-          textAlign: TextAlign.right,
-          style: TextStyle(
-            fontSize: 16,
-            fontFamily: 'Cairo',
-            color: isDark ? Colors.grey.shade300 : Colors.black87,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            child: Text(
-              'الغاء',
-              style: TextStyle(
-                fontSize: 14,
-                fontFamily: 'Cairo',
-                color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(dialogContext);
-              context.read<UserProvider>().clearUserData();
-              ReusableToast.showToast(
-                message: 'تم تسجيل الخروج بنجاح',
-                bgColor: Colors.green,
-                textColor: Colors.white,
-                fontSize: 16,
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red.shade600,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-              elevation: 2,
-            ),
-            child: const Text(
-              'تسجيل الخروج',
-              style: TextStyle(
-                fontSize: 14,
-                fontFamily: 'Cairo',
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
+      sidebarContent: buildAppSidebar(
+        context: context,
+        selectedIndex: _selectedDrawerIndex,
       ),
     );
   }

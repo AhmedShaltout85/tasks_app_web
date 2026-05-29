@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:tasks_app/common_widgets/responsive/app_sidebar.dart';
 import 'package:tasks_app/common_widgets/responsive/responsive_content_container.dart';
+import 'package:tasks_app/common_widgets/responsive/responsive_scaffold.dart';
 import 'package:provider/provider.dart';
 import 'package:tasks_app/controller/preventive_provider.dart';
 import 'package:tasks_app/controller/about_app_provider.dart';
@@ -244,13 +246,18 @@ class _ManagePreventiveMaintenanceScreenState
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    final colorScheme = Theme.of(context).colorScheme;
+    return ResponsiveScaffold(
+      sidebarContent: buildAppSidebar(
+        context: context,
+        selectedIndex: 4,
+      ),
       appBar: AppBar(
         leading: const SizedBox.shrink(),
-        title: const Text('إضافة صيانة وقائية'),
+        backgroundColor: Colors.transparent,
         actions: [
           IconButton(
-            icon: const Icon(Icons.add),
+            icon: Icon(Icons.add, color: colorScheme.onSurface),
             onPressed: _addMaintenance,
           ),
         ],

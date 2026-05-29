@@ -1,9 +1,11 @@
 import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:tasks_app/common_widgets/responsive/app_sidebar.dart';
 import 'package:tasks_app/common_widgets/responsive/empty_state_widget.dart';
 import 'package:tasks_app/common_widgets/responsive/responsive_content_container.dart';
 import 'package:tasks_app/common_widgets/responsive/responsive_form_container.dart';
+import 'package:tasks_app/common_widgets/responsive/responsive_scaffold.dart';
 import 'package:tasks_app/common_widgets/resuable_widgets/reusable_toast.dart';
 import 'package:tasks_app/controller/theme_provider.dart';
 import 'package:tasks_app/controller/user_provider.dart';
@@ -242,10 +244,14 @@ class _ManageUserScreenState extends State<ManageUserScreen>
     final colorScheme = Theme.of(context).colorScheme;
     final userColor = isDark ? colorScheme.secondary : const Color(0xFF4CAF50);
 
-    return Scaffold(
+    return ResponsiveScaffold(
+      sidebarContent: buildAppSidebar(
+        context: context,
+        selectedIndex: 1,
+      ),
       appBar: AppBar(
         leading: const SizedBox.shrink(),
-        title: const Text('ادارة المستخدمين'),
+        backgroundColor: Colors.transparent,
         actions: [
           Container(
             margin: const EdgeInsets.only(right: 8),
@@ -257,10 +263,7 @@ class _ManageUserScreenState extends State<ManageUserScreen>
                 onTap: _showAddDialog,
                 child: Container(
                   padding: const EdgeInsets.all(10),
-                  child: Icon(
-                    Icons.person_add,
-                    color: isDark ? Colors.black87 : Colors.white,
-                  ),
+                  child: Icon(Icons.person_add, color: colorScheme.onPrimary),
                 ),
               ),
             ),

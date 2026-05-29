@@ -6,7 +6,7 @@ class ResponsiveScaffold extends StatelessWidget {
   final PreferredSizeWidget? appBar;
   final Widget? drawer;
   final Widget? sidebarContent;
-  final FloatingActionButton? floatingActionButton;
+  final Widget? floatingActionButton;
 
   const ResponsiveScaffold({
     super.key,
@@ -19,16 +19,20 @@ class ResponsiveScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDesktop = ResponsiveBreakpoints.of(context).isDesktop;
+    final responsiveValue = ResponsiveBreakpoints.of(context);
+    final isDesktop = responsiveValue.isDesktop;
+    final isTablet = responsiveValue.isTablet;
 
-    if (isDesktop && sidebarContent != null) {
+    if (sidebarContent != null) {
+      final sidebarWidth = isDesktop ? 280.0 : (isTablet ? 240.0 : 220.0);
+
       return Scaffold(
         appBar: appBar,
         floatingActionButton: floatingActionButton,
         body: Row(
           children: [
             SizedBox(
-              width: 280,
+              width: sidebarWidth,
               child: Material(elevation: 2, child: sidebarContent!),
             ),
             const VerticalDivider(width: 1, thickness: 1),

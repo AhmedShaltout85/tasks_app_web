@@ -2,8 +2,7 @@ import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:tasks_app/common_widgets/custom_widgets/custom_user_drawer.dart';
-import 'package:tasks_app/common_widgets/responsive/drawer_items.dart';
+import 'package:tasks_app/common_widgets/responsive/app_sidebar.dart';
 import 'package:tasks_app/common_widgets/responsive/responsive_form_container.dart';
 import 'package:tasks_app/common_widgets/responsive/responsive_content_container.dart';
 import 'package:tasks_app/common_widgets/responsive/responsive_scaffold.dart';
@@ -14,12 +13,6 @@ import 'package:tasks_app/controller/place_name_provider.dart';
 import 'package:tasks_app/controller/theme_provider.dart';
 import 'package:tasks_app/controller/user_provider.dart';
 import 'package:tasks_app/models/daily_task_model.dart';
-import 'package:tasks_app/screens/about_app/manage_about_app_screen.dart';
-import 'package:tasks_app/screens/preventive/preventive_item_screen.dart';
-import 'package:tasks_app/screens/preventive/manage_preventive_maintenance_screen.dart';
-import 'package:tasks_app/screens/report/preventive_maintenance_report_screen.dart';
-import 'package:tasks_app/screens/report/report_screen.dart';
-import 'package:tasks_app/screens/settings/settings_screen.dart';
 import 'package:tasks_app/services/connection_dialog_service.dart';
 import 'package:tasks_app/common_widgets/responsive/empty_state_widget.dart';
 import 'package:tasks_app/common_widgets/task_widgets/shared_task_card.dart';
@@ -257,143 +250,21 @@ class _TaskScreenState extends State<UserTaskScreen> {
     employeeNames.remove(userProvider.currentUser?.username);
     employeeNames.remove('NULL');
     log('employeeNames: $employeeNames');
-    final sidebarItems = [
-      DrawerItem(
-        index: 0,
-        icon: Icons.shield_outlined,
-        title: 'عناصر وقائية',
-        onTap: () {
-          setState(() => _selectedDrawerIndex = 0);
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (context) => const PreventiveItemScreen()),
-          );
-        },
-      ),
-      DrawerItem(
-        index: 1,
-        icon: Icons.assessment_rounded,
-        title: 'التقارير اليومية',
-        onTap: () {
-          setState(() => _selectedDrawerIndex = 1);
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const ReportScreen()),
-          );
-        },
-      ),
-      DrawerItem(
-        index: 2,
-        icon: Icons.build_circle_outlined,
-        title: 'تقارير صيانة وقائية',
-        onTap: () {
-          setState(() => _selectedDrawerIndex = 2);
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const PreventiveMaintenanceReportScreen(),
-            ),
-          );
-        },
-      ),
-      DrawerItem(
-        index: 3,
-        icon: Icons.add_circle_outline,
-        title: 'إضافة صيانة وقائية',
-        onTap: () {
-          setState(() => _selectedDrawerIndex = 3);
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const ManagePreventiveMaintenanceScreen(),
-            ),
-          );
-        },
-      ),
-      DrawerItem(
-        index: 4,
-        icon: Icons.settings_rounded,
-        title: 'الضبط والاعدادات',
-        onTap: () {
-          setState(() => _selectedDrawerIndex = 4);
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const SettingsScreen()),
-          );
-        },
-      ),
-      DrawerItem(
-        index: 5,
-        icon: Icons.info_outline_rounded,
-        title: 'حول التطبيقات',
-        onTap: () {
-          setState(() => _selectedDrawerIndex = 5);
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const ManageAboutAppScreen(),
-            ),
-          );
-        },
-      ),
-    ];
 
     return ResponsiveScaffold(
-      drawer: null,
-      sidebarContent: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: isDark
-                ? [colorScheme.surface, colorScheme.surface.withOpacity(0.95)]
-                : [Colors.white, Colors.grey.shade50],
-          ),
-        ),
-        child: Column(
-          children: [
-            DrawerHeaderWidget(
-              isDark: isDark,
-              colorScheme: colorScheme,
-              displayName: userProvider.currentUser?.displayName ?? 'User',
-              username: userProvider.currentUser?.username ?? '',
-              onHomeTap: () {},
-            ),
-            Expanded(
-              child: DrawerItemsList(
-                items: sidebarItems,
-                selectedIndex: _selectedDrawerIndex,
-                isDark: isDark,
-                colorScheme: colorScheme,
-              ),
-            ),
-            DrawerLogoutSection(
-              isDark: isDark,
-              colorScheme: colorScheme,
-              onLogout: () {
-                userProvider.clearUserData();
-              },
-            ),
-          ],
-        ),
+      sidebarContent: buildAppSidebar(
+        context: context,
+        selectedIndex: _selectedDrawerIndex,
       ),
       appBar: AppBar(
         leading: const SizedBox.shrink(),
-        title: Text(
-          '${userProvider.currentUser?.username}' + ' - ' + 'المهام اليومية',
-          style: TextStyle(fontFamily: 'Cairo'),
-        ),
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(0),
-          child: SizedBox(),
-        ),
+        backgroundColor: Colors.transparent,
         actions: [
           Stack(
             children: [
               IconButton(
                 tooltip: 'تخصيص',
-                icon: const Icon(Icons.filter_list),
+                icon: Icon(Icons.filter_list, color: colorScheme.onSurface),
                 onPressed: () {
                   setState(() {
                     showFilters = !showFilters;

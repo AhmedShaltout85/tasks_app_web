@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:responsive_framework/responsive_framework.dart';
+import 'package:tasks_app/common_widgets/responsive/app_sidebar.dart';
 import 'package:tasks_app/common_widgets/responsive/responsive_content_container.dart';
 import 'package:tasks_app/common_widgets/responsive/responsive_scaffold.dart';
 import 'package:tasks_app/controller/preventive_provider.dart';
@@ -17,7 +18,8 @@ import 'package:tasks_app/common_widgets/resuable_widgets/reusable_toast.dart';
 import 'package:tasks_app/screens/report/widgets/preventive_maintenance_export_pdf.dart';
 
 class PreventiveMaintenanceReportScreen extends StatefulWidget {
-  const PreventiveMaintenanceReportScreen({super.key});
+  final bool embedded;
+  const PreventiveMaintenanceReportScreen({super.key, this.embedded = false});
 
   @override
   State<PreventiveMaintenanceReportScreen> createState() =>
@@ -770,27 +772,22 @@ class _PreventiveMaintenanceReportScreenState
   @override
   Widget build(BuildContext context) {
     final isDesktop = ResponsiveBreakpoints.of(context).isDesktop;
+    final colorScheme = Theme.of(context).colorScheme;
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final isAdmin = userProvider.currentUser?.role == 'ADMIN' ||
+        userProvider.currentUser?.role == 'MANAGER';
+    final selectedIndex = isAdmin ? 6 : 3;
 
     return ResponsiveScaffold(
+      sidebarContent: widget.embedded
+          ? null
+          : buildAppSidebar(
+              context: context,
+              selectedIndex: selectedIndex,
+            ),
       appBar: AppBar(
         leading: const SizedBox.shrink(),
-        title:
-            const Text('تقرير صيانة وقائية', overflow: TextOverflow.ellipsis),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(4),
-          child: Container(
-            height: 4,
-            decoration: BoxDecoration(
-              borderRadius: const BorderRadius.vertical(
-                bottom: Radius.circular(4),
-              ),
-              color: Theme.of(context)
-                  .colorScheme
-                  .outlineVariant
-                  .withValues(alpha: 0.5),
-            ),
-          ),
-        ),
+        backgroundColor: Colors.transparent,
         actions: [
           Consumer<PreventiveProvider>(
             builder: (context, provider, child) {
@@ -815,7 +812,8 @@ class _PreventiveMaintenanceReportScreenState
               );
 
               return IconButton(
-                icon: const Icon(Icons.download_rounded, size: 22),
+                icon: Icon(Icons.download_rounded,
+                    size: 22, color: colorScheme.onSurface),
                 onPressed: filteredData.isEmpty
                     ? null
                     : () async {
@@ -1290,7 +1288,6 @@ class _PreventiveMaintenanceReportScreenState
           },
         ),
       ),
-      drawer: null,
     );
   }
 }
