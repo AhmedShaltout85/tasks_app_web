@@ -1214,10 +1214,8 @@ class _AddTaskFormContentState extends State<_AddTaskFormContent> {
   @override
   void initState() {
     super.initState();
-    _selectedAppName =
-        widget.appNames.isNotEmpty ? widget.appNames.first : null;
-    _selectedPlaceName =
-        widget.placeNames.isNotEmpty ? widget.placeNames.first : null;
+    _selectedAppName = 'اختر';
+    _selectedPlaceName = 'اختر';
     _selectedCoOperators = List.from(widget.employeeNames);
   }
 
@@ -1284,15 +1282,22 @@ class _AddTaskFormContentState extends State<_AddTaskFormContent> {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            items: widget.appNames.map((name) {
-              return DropdownMenuItem<String>(
-                value: name,
-                child: Text(name, style: const TextStyle(fontFamily: 'Cairo')),
-              );
-            }).toList(),
+            items: [
+              const DropdownMenuItem<String>(
+                value: 'اختر',
+                child: Text('اختر', style: TextStyle(fontFamily: 'Cairo')),
+              ),
+              ...widget.appNames.map((name) {
+                return DropdownMenuItem<String>(
+                  value: name,
+                  child:
+                      Text(name, style: const TextStyle(fontFamily: 'Cairo')),
+                );
+              }),
+            ],
             onChanged: (value) => setState(() => _selectedAppName = value),
             validator: (value) {
-              if (value == null || value.isEmpty) {
+              if (value == null || value.isEmpty || value == 'اختر') {
                 return 'فضلا اختر اسم التطبيق';
               }
               return null;
@@ -1318,15 +1323,22 @@ class _AddTaskFormContentState extends State<_AddTaskFormContent> {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            items: widget.placeNames.map((name) {
-              return DropdownMenuItem<String>(
-                value: name,
-                child: Text(name, style: const TextStyle(fontFamily: 'Cairo')),
-              );
-            }).toList(),
+            items: [
+              const DropdownMenuItem<String>(
+                value: 'اختر',
+                child: Text('اختر', style: TextStyle(fontFamily: 'Cairo')),
+              ),
+              ...widget.placeNames.map((name) {
+                return DropdownMenuItem<String>(
+                  value: name,
+                  child:
+                      Text(name, style: const TextStyle(fontFamily: 'Cairo')),
+                );
+              }),
+            ],
             onChanged: (value) => setState(() => _selectedPlaceName = value),
             validator: (value) {
-              if (value == null || value.isEmpty) {
+              if (value == null || value.isEmpty || value == 'اختر') {
                 return 'فضلا اختر اسم المكان';
               }
               return null;
@@ -1436,8 +1448,11 @@ class _AddTaskFormContentState extends State<_AddTaskFormContent> {
               if (_formKey.currentState!.validate()) {
                 widget.onSubmit({
                   'task_title': _taskTitleController.text,
-                  'app_name': _selectedAppName ?? '',
-                  'place_name': _selectedPlaceName ?? '',
+                  'app_name':
+                      _selectedAppName == 'اختر' ? '' : _selectedAppName ?? '',
+                  'place_name': _selectedPlaceName == 'اختر'
+                      ? ''
+                      : _selectedPlaceName ?? '',
                   'sub_place': _subPlaceController.text,
                   'is_remote': _isRemote,
                   'co_operator_users': _selectedCoOperators,
