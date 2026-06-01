@@ -27,7 +27,7 @@ void navigateToReplacement(BuildContext context, Widget widget) =>
 
 //navigation function using pushNamed
 void navigateToReplacementNamed(BuildContext context, String routeName) =>
-    Navigator.pushNamed(context, routeName);
+    Navigator.pushReplacementNamed(context, routeName);
 
 Widget gap({double? height, double? width}) =>
     SizedBox(height: height, width: width);
@@ -217,7 +217,7 @@ Widget _buildBottomSheetContent({
     submitButtonText: 'حفظ المهمة',
     onSubmit: (values) async {
       if (onSubmitTask != null) {
-        onSubmitTask!(values);
+        onSubmitTask(values);
       }
     },
   );
@@ -426,7 +426,7 @@ class _CustomBottomSheetContentState extends State<_CustomBottomSheetContent> {
       return Padding(
         padding: const EdgeInsets.only(bottom: 16),
         child: DropdownButtonFormField<String>(
-          value: _dropdownValues[field.key],
+          initialValue: _dropdownValues[field.key],
           dropdownColor: isDark ? colorScheme.surface : Colors.white,
           style: TextStyle(
               fontFamily: 'Cairo',
@@ -585,8 +585,7 @@ void showCustomUpdatePasswordDialog({
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
-                            style: TextStyle(fontFamily: 'Cairo'),
-
+              style: TextStyle(fontFamily: 'Cairo'),
               controller: email,
               decoration: const InputDecoration(
                 labelText: 'الايميل',

@@ -231,9 +231,7 @@ class _ManageAboutAppScreenState extends State<ManageAboutAppScreen>
 
   void _showEditDialog(AboutApp aboutApp) {
     final appNameController = TextEditingController(text: aboutApp.appName);
-    final recommendedText = aboutApp.recommended is List
-        ? (aboutApp.recommended as List).join(', ')
-        : aboutApp.recommended?.toString() ?? '';
+    final recommendedText = (aboutApp.recommended as List).join(', ');
     final recommendedController = TextEditingController(text: recommendedText);
     final formKey = GlobalKey<FormState>();
 
@@ -459,7 +457,7 @@ class _ManageAboutAppScreenState extends State<ManageAboutAppScreen>
         selectedIndex: selectedIndex,
       ),
       appBar: AppBar(
-        title: const Text('ادارة التطبيقات والاجهزة'),
+        // title: const Text('ادارة التطبيقات والاجهزة'),
         backgroundColor: Colors.transparent,
         actions: [
           Consumer<AboutAppProvider>(

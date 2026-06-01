@@ -512,7 +512,7 @@ class _TaskScreenState extends State<ManagerTaskScreen> {
                           children: [
                             Expanded(
                               child: DropdownButtonFormField<String>(
-                                value: selectedApp,
+                                initialValue: selectedApp,
                                 isExpanded: true,
                                 dropdownColor:
                                     isDark ? colorScheme.surface : Colors.white,
@@ -565,7 +565,7 @@ class _TaskScreenState extends State<ManagerTaskScreen> {
                             const SizedBox(width: 5),
                             Expanded(
                               child: DropdownButtonFormField<bool?>(
-                                value: selectedIsRemote,
+                                initialValue: selectedIsRemote,
                                 isExpanded: true,
                                 dropdownColor:
                                     isDark ? colorScheme.surface : Colors.white,
@@ -624,7 +624,7 @@ class _TaskScreenState extends State<ManagerTaskScreen> {
                           children: [
                             Expanded(
                               child: DropdownButtonFormField<String>(
-                                value: selectedDepartment,
+                                initialValue: selectedDepartment,
                                 isExpanded: true,
                                 dropdownColor:
                                     isDark ? colorScheme.surface : Colors.white,
@@ -694,7 +694,7 @@ class _TaskScreenState extends State<ManagerTaskScreen> {
                             const SizedBox(width: 5),
                             Expanded(
                               child: DropdownButtonFormField<String>(
-                                value: _selectedUserName,
+                                initialValue: _selectedUserName,
                                 isExpanded: true,
                                 dropdownColor:
                                     isDark ? colorScheme.surface : Colors.white,
@@ -852,6 +852,7 @@ class _TaskScreenState extends State<ManagerTaskScreen> {
                         ),
                       Expanded(
                         child: ListView.builder(
+                          reverse: true,
                           itemCount: filteredTasks.length,
                           itemBuilder: (context, index) {
                             final task = filteredTasks[index];

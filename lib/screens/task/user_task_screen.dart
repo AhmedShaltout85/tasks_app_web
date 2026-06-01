@@ -241,7 +241,7 @@ class _TaskScreenState extends State<UserTaskScreen> {
     List<String> placeNames =
         context.watch<PlaceNameProvider>().placeNameStrings;
     List<String> employeeNames = userProvider.users
-        .map((u) => u.role == 'USER' ? u.username : 'NULL')
+        .map((u) => u.role == 'USER' && u.enabled == true ? u.username : 'NULL')
         // .where((username) =>
         //     username != 'admin' ||
         //     username != userProvider.currentUser?.username)
@@ -371,7 +371,7 @@ class _TaskScreenState extends State<UserTaskScreen> {
                             children: [
                               Expanded(
                                 child: DropdownButtonFormField<String?>(
-                                  value: selectedIsRemote,
+                                  initialValue: selectedIsRemote,
                                   isExpanded: true,
                                   dropdownColor: isDark
                                       ? colorScheme.surface
@@ -458,7 +458,7 @@ class _TaskScreenState extends State<UserTaskScreen> {
                               const SizedBox(width: 12),
                               Expanded(
                                 child: DropdownButtonFormField<String?>(
-                                  value: selectedPriority,
+                                  initialValue: selectedPriority,
                                   isExpanded: true,
                                   dropdownColor: isDark
                                       ? colorScheme.surface
@@ -562,7 +562,7 @@ class _TaskScreenState extends State<UserTaskScreen> {
                             children: [
                               Expanded(
                                 child: DropdownButtonFormField<String>(
-                                  value: selectedApp,
+                                  initialValue: selectedApp,
                                   isExpanded: true,
                                   dropdownColor: isDark
                                       ? colorScheme.surface
@@ -752,6 +752,7 @@ class _TaskScreenState extends State<UserTaskScreen> {
                           ),
                         Expanded(
                           child: ListView.builder(
+                            reverse: true,
                             itemCount: filteredTasks.length,
                             itemBuilder: (context, index) {
                               final task = filteredTasks[index];
@@ -1265,7 +1266,7 @@ class _AddTaskFormContentState extends State<_AddTaskFormContent> {
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(
-            value: _selectedAppName,
+            initialValue: _selectedAppName,
             isExpanded: true,
             dropdownColor: isDark ? colorScheme.surface : Colors.white,
             style: TextStyle(
@@ -1299,7 +1300,7 @@ class _AddTaskFormContentState extends State<_AddTaskFormContent> {
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(
-            value: _selectedPlaceName,
+            initialValue: _selectedPlaceName,
             isExpanded: true,
             dropdownColor: isDark ? colorScheme.surface : Colors.white,
             style: TextStyle(
