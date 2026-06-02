@@ -931,7 +931,7 @@ class _TaskScreenState extends State<UserTaskScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    task.taskStatus ? 'المهمة تم تعطيلها' : 'المهمة تم تفعيلها',
+                    task.taskStatus ? 'تم انهاء المهمة' : 'تم تفعيل المهمة',
                     style: const TextStyle(
                       fontWeight: FontWeight.w500,
                       fontFamily: 'Cairo',

@@ -76,11 +76,18 @@ Future<void> generatePDF({
                 style: pw.TextStyle(fontSize: headerFontSize, font: fontArabic),
               ),
             ),
+          pw.Directionality(
+            textDirection: pw.TextDirection.rtl,
+            child: pw.Text(
+              'الادارة - : أدارة البرامج وصيانتها',
+              style: pw.TextStyle(fontSize: headerFontSize, font: fontArabic),
+            ),
+          ),
           if (selectedAssignee != null && selectedAssignee != 'All')
             pw.Directionality(
               textDirection: pw.TextDirection.rtl,
               child: pw.Text(
-                'المسند إليه - Assignee: $selectedAssignee',
+                'المسند إليه - : $selectedAssignee',
                 style: pw.TextStyle(fontSize: headerFontSize, font: fontArabic),
               ),
             ),
@@ -230,9 +237,7 @@ Future<void> generatePDF({
                       ),
                       contentCellBilingual(
                         cellPadding,
-                        (task.isRemote ?? false)
-                            ? 'Remote\nRemote'
-                            : 'Onsite\nOnsite',
+                        (task.isRemote ?? false) ? 'عن بعد' : 'موقع',
                         contentTextStyle,
                       ),
                       contentCellBilingual(

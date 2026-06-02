@@ -565,45 +565,6 @@ class _ReportScreenState extends State<ReportScreen>
                                     const SizedBox(height: 10),
                                     Row(
                                       children: [
-                                        Expanded(
-                                          child: _buildDropdown(
-                                            label: 'مخصص للموظف',
-                                            value: assigneeList
-                                                    .contains(selectedAssignee)
-                                                ? selectedAssignee!
-                                                : assigneeList.first,
-                                            items: assigneeList,
-                                            icon: Icons.person_outline_rounded,
-                                            onChanged: userRole == 'USER'
-                                                ? null
-                                                : (value) {
-                                                    setState(() =>
-                                                        selectedAssignee =
-                                                            value);
-                                                  },
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Expanded(
-                                          child: _buildDropdown(
-                                            label: 'التطبيق/الجهاز',
-                                            value: applicationList.contains(
-                                                    selectedApplication)
-                                                ? selectedApplication!
-                                                : 'الكل',
-                                            items: applicationList,
-                                            icon: Icons.apps_rounded,
-                                            onChanged: (value) {
-                                              setState(() =>
-                                                  selectedApplication = value);
-                                            },
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 10),
-                                    Row(
-                                      children: [
                                         if (userRole != 'USER')
                                           Expanded(
                                             child: _buildDropdown(
@@ -629,6 +590,45 @@ class _ReportScreenState extends State<ReportScreen>
                                           ),
                                         if (userRole != 'USER')
                                           const SizedBox(width: 8),
+                                        Expanded(
+                                          child: _buildDropdown(
+                                            label: 'مخصص للموظف',
+                                            value: assigneeList
+                                                    .contains(selectedAssignee)
+                                                ? selectedAssignee!
+                                                : assigneeList.first,
+                                            items: assigneeList,
+                                            icon: Icons.person_outline_rounded,
+                                            onChanged: userRole == 'USER'
+                                                ? null
+                                                : (value) {
+                                                    setState(() =>
+                                                        selectedAssignee =
+                                                            value);
+                                                  },
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 10),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: _buildDropdown(
+                                            label: 'التطبيق/الجهاز',
+                                            value: applicationList.contains(
+                                                    selectedApplication)
+                                                ? selectedApplication!
+                                                : 'الكل',
+                                            items: applicationList,
+                                            icon: Icons.apps_rounded,
+                                            onChanged: (value) {
+                                              setState(() =>
+                                                  selectedApplication = value);
+                                            },
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
                                         Expanded(
                                           child: _buildDropdown(
                                             label: 'مكان الصيانة',

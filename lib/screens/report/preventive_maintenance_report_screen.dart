@@ -1088,40 +1088,6 @@ class _PreventiveMaintenanceReportScreenState
                                       children: [
                                         Expanded(
                                           child: _buildDropdown(
-                                            label: 'المستخدم',
-                                            value: safeUsername,
-                                            items: usernameList,
-                                            icon: Icons.person_outline_rounded,
-                                            onChanged: isUsernameLocked
-                                                ? null
-                                                : (value) {
-                                                    _debouncedFilterUpdate(() {
-                                                      selectedUsername = value;
-                                                    });
-                                                  },
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Expanded(
-                                          child: _buildDropdown(
-                                            label: 'التطبيق/الجهاز',
-                                            value: safeAppName,
-                                            items: appList,
-                                            icon: Icons.apps_rounded,
-                                            onChanged: (value) {
-                                              _debouncedFilterUpdate(() {
-                                                selectedAppName = value;
-                                              });
-                                            },
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 10),
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: _buildDropdown(
                                             label: 'الادارة',
                                             value: safeDepartment,
                                             items: departmentList,
@@ -1135,6 +1101,40 @@ class _PreventiveMaintenanceReportScreenState
                                                       selectedUsername = 'الكل';
                                                     });
                                                   },
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: _buildDropdown(
+                                            label: 'المستخدم',
+                                            value: safeUsername,
+                                            items: usernameList,
+                                            icon: Icons.person_outline_rounded,
+                                            onChanged: isUsernameLocked
+                                                ? null
+                                                : (value) {
+                                                    _debouncedFilterUpdate(() {
+                                                      selectedUsername = value;
+                                                    });
+                                                  },
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 10),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: _buildDropdown(
+                                            label: 'التطبيق/الجهاز',
+                                            value: safeAppName,
+                                            items: appList,
+                                            icon: Icons.apps_rounded,
+                                            onChanged: (value) {
+                                              _debouncedFilterUpdate(() {
+                                                selectedAppName = value;
+                                              });
+                                            },
                                           ),
                                         ),
                                         const SizedBox(width: 8),
