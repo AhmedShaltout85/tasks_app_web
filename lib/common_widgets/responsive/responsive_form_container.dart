@@ -3,11 +3,12 @@ import 'package:responsive_framework/responsive_framework.dart';
 
 void showResponsiveForm({
   required BuildContext context,
-  required String title,
+  String? title,
   required Widget content,
   double maxWidth = 500,
 }) {
   final isDesktop = ResponsiveBreakpoints.of(context).isDesktop;
+  final showHeader = title != null && title.isNotEmpty;
 
   if (isDesktop) {
     showDialog(
@@ -22,25 +23,27 @@ void showResponsiveForm({
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        title,
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          fontFamily: 'Cairo',
+                if (showHeader) ...[
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'Cairo',
+                          ),
                         ),
                       ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.pop(dialogContext),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(dialogContext),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                ],
                 Flexible(child: SingleChildScrollView(child: content)),
               ],
             ),
@@ -73,15 +76,17 @@ void showResponsiveForm({
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: 'Cairo',
+              if (showHeader) ...[
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'Cairo',
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
+                const SizedBox(height: 16),
+              ],
               Expanded(
                 child: SingleChildScrollView(
                   controller: scrollController,

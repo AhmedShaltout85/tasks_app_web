@@ -117,7 +117,8 @@ class _CustomBottomSheetState extends State<CustomBottomSheet> {
     if (field is TextFieldConfig) {
       return TextFormField(
         controller: _controllers[field.key],
-        style: TextStyle(fontFamily: 'Cairo', color: isDark ? Colors.white : Colors.black87),
+        style: TextStyle(
+            fontFamily: 'Cairo', color: isDark ? Colors.white : Colors.black87),
         decoration: InputDecoration(
           labelText: field.label,
           labelStyle: TextStyle(
@@ -156,7 +157,8 @@ class _CustomBottomSheetState extends State<CustomBottomSheet> {
       return DropdownButtonFormField<String>(
         initialValue: _dropdownValues[field.key],
         dropdownColor: isDark ? colorScheme.surface : Colors.white,
-        style: TextStyle(fontFamily: 'Cairo', color: isDark ? Colors.white : Colors.black87),
+        style: TextStyle(
+            fontFamily: 'Cairo', color: isDark ? Colors.white : Colors.black87),
         decoration: InputDecoration(
           labelText: field.label,
           labelStyle: TextStyle(
@@ -223,28 +225,31 @@ class _CustomBottomSheetState extends State<CustomBottomSheet> {
                 ),
               ),
             ),
-          MultiSelectDropdown.simpleList(
-            list: field.items,
-            initiallySelected: _multiSelectValues[field.key] ?? [],
-            onChange: (newList) {
-              setState(() {
-                _multiSelectValues[field.key] = List<String>.from(newList);
-              });
-              field.onChange?.call(newList);
-            },
-            includeSearch: field.includeSearch,
-            includeSelectAll: field.includeSelectAll,
-            isLarge: field.isLarge,
-            boxDecoration: field.boxDecoration ??
-                BoxDecoration(
-                  color: isDark
-                      ? colorScheme.surface.withOpacity(0.5)
-                      : Colors.grey[50],
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: isDark ? Colors.grey[700]! : Colors.grey[300]!,
+          KeyedSubtree(
+            key: field.widgetKey,
+            child: MultiSelectDropdown.simpleList(
+              list: field.items,
+              initiallySelected: _multiSelectValues[field.key] ?? [],
+              onChange: (newList) {
+                setState(() {
+                  _multiSelectValues[field.key] = List<String>.from(newList);
+                });
+                field.onChange?.call(newList);
+              },
+              includeSearch: field.includeSearch,
+              includeSelectAll: field.includeSelectAll,
+              isLarge: field.isLarge,
+              boxDecoration: field.boxDecoration ??
+                  BoxDecoration(
+                    color: isDark
+                        ? colorScheme.surface.withOpacity(0.5)
+                        : Colors.grey[50],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isDark ? Colors.grey[700]! : Colors.grey[300]!,
+                    ),
                   ),
-                ),
+            ),
           ),
           if (field.validator != null)
             Builder(
@@ -255,7 +260,10 @@ class _CustomBottomSheetState extends State<CustomBottomSheet> {
                     padding: const EdgeInsets.only(top: 8.0, left: 12.0),
                     child: Text(
                       error,
-                      style: TextStyle(fontFamily: 'Cairo', color: colorScheme.error, fontSize: 12),
+                      style: TextStyle(
+                          fontFamily: 'Cairo',
+                          color: colorScheme.error,
+                          fontSize: 12),
                     ),
                   );
                 }
@@ -454,6 +462,7 @@ class MultiSelectDropdownFieldConfig extends FieldConfig {
   final bool isLarge;
   final BoxDecoration? boxDecoration;
   final String? Function(List<String>?)? validator;
+  final Key? widgetKey;
 
   const MultiSelectDropdownFieldConfig({
     required super.key,
@@ -468,5 +477,6 @@ class MultiSelectDropdownFieldConfig extends FieldConfig {
     this.validator,
     super.hint,
     super.icon,
+    this.widgetKey,
   });
 }

@@ -120,29 +120,28 @@ class _TaskScreenState extends State<TaskScreen> {
     final userProvider = context.read<UserProvider>();
     final currentUser = userProvider.currentUser;
 
-    int daysUntilDue =
-        int.tryParse(values['expected-completion-date'] ?? '7') ?? 7;
+    int daysUntilDue = int.tryParse(values['توقع انتهاء المهمة'] ?? '7') ?? 7;
 
     // Filter out the selected assignee from co-operators
-    final assignedTo = values['assign-to'] ?? '';
-    List<dynamic> coOperators = values['co-operator'] ?? [];
+    final assignedTo = values['مخصصة ل'] ?? '';
+    List<dynamic> coOperators = values['المتعاونون'] ?? [];
     // ignore: unnecessary_type_check
     if (coOperators is List) {
       coOperators = coOperators.where((op) => op != assignedTo).toList();
     }
 
     final newTask = DailyTaskModel(
-      taskTitle: values['title'] ?? '',
+      taskTitle: values['اسم المهمة'] ?? '',
       taskStatus: true,
-      appName: values['app-name'] ?? '',
-      visitPlace: values['visit-place'] ?? '',
-      subPlace: values['sub-place'] ?? '',
+      appName: values['التطبيق/الجهاز'] ?? '',
+      visitPlace: values['المكان الرئيسى'] ?? '',
+      subPlace: values['مكان فرعى'] ?? '',
       assignedTo: assignedTo,
       assignedBy: currentUser?.username ?? '',
       coOperator: coOperators,
       expectedCompletionDate: DateTime.now().add(Duration(days: daysUntilDue)),
-      taskPriority: values['task-priority'] ?? 'MEDIUM',
-      taskNote: values['task-note'] ?? 'none',
+      taskPriority: values['أهمية المهمة'] ?? 'MEDIUM',
+      taskNote: values['ملاحظات'] ?? 'none',
       isRemote: false,
       createdAt: DateTime.now(),
     );
@@ -297,7 +296,6 @@ class _TaskScreenState extends State<TaskScreen> {
 
                 showResponsiveForm(
                   context: context,
-                  title: 'بيانات المهمة',
                   content: _buildTaskFormContent(
                     appNames: appNames,
                     employeeNames: uniqueEmployeeNames,
@@ -714,10 +712,11 @@ class _TaskScreenState extends State<TaskScreen> {
     required List<String> placeNames,
   }) {
     final ladmin = context.read<UserProvider>().currentUser?.username;
+    final currentAssigneeNotifier = ValueNotifier<String?>(currentUsername);
 
     return StatefulBuilder(
       builder: (context, setState) {
-        String? currentAssignee = currentUsername;
+        final currentAssignee = currentAssigneeNotifier.value;
         final filteredCoOperators = employeeNames
             .where(
               (name) =>
@@ -771,9 +770,8 @@ class _TaskScreenState extends State<TaskScreen> {
                 .toList(),
             icon: Icons.person,
             onChanged: (value) {
-              setState(() {
-                currentAssignee = value;
-              });
+              currentAssigneeNotifier.value = value;
+              setState(() {});
             },
             validator: (value) {
               if (value == null || value.isEmpty) {
@@ -816,6 +814,7 @@ class _TaskScreenState extends State<TaskScreen> {
             key: 'المتعاونون',
             label: 'المتعاونون',
             items: filteredCoOperators,
+            widgetKey: ValueKey(currentAssignee),
             icon: Icons.person,
             hint: 'ادخل المتعاونون(اختيارى)',
             initialValues: const [],

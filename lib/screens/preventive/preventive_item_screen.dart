@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tasks_app/common_widgets/responsive/app_sidebar.dart';
@@ -22,6 +23,7 @@ class PreventiveItemScreen extends StatefulWidget {
 class _PreventiveItemScreenState extends State<PreventiveItemScreen> {
   final ConnectivityService _connectivity = ConnectivityService();
   final TextEditingController _actionController = TextEditingController();
+  final ScrollController _horizontalScrollController = ScrollController();
   bool _isLoading = false;
   String? _selectedAppName;
 
@@ -37,6 +39,7 @@ class _PreventiveItemScreenState extends State<PreventiveItemScreen> {
   @override
   void dispose() {
     _actionController.dispose();
+    _horizontalScrollController.dispose();
     super.dispose();
   }
 
@@ -346,44 +349,62 @@ class _PreventiveItemScreenState extends State<PreventiveItemScreen> {
                 Container(
                   height: 60,
                   padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: appNames.length,
-                    itemBuilder: (context, index) {
-                      final appName = appNames[index];
-                      final isSelected = _selectedAppName == appName;
-
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: FilterChip(
-                          selected: isSelected,
-                          label: Text(
-                            appName,
-                            strutStyle: StrutStyle(fontFamily: 'Cairo'),
-                          ),
-                          avatar: Icon(
-                            Icons.apps,
-                            size: 18,
-                            color: isSelected
-                                ? Colors.white
-                                : Theme.of(context).colorScheme.primary,
-                          ),
-                          selectedColor: Theme.of(context).colorScheme.primary,
-                          checkmarkColor: Colors.white,
-                          labelStyle: TextStyle(
-                            fontFamily: 'Cairo',
-                            color: isSelected ? Colors.white : Colors.black87,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          onSelected: (selected) {
-                            setState(() {
-                              _selectedAppName = selected ? appName : null;
-                            });
-                          },
-                        ),
-                      );
+                  child: Listener(
+                    onPointerSignal: (event) {
+                      if (event is PointerScrollEvent) {
+                        final currentOffset =
+                            _horizontalScrollController.offset;
+                        final newOffset =
+                            (currentOffset + event.scrollDelta.dy).clamp(
+                          _horizontalScrollController.position.minScrollExtent,
+                          _horizontalScrollController.position.maxScrollExtent,
+                        );
+                        _horizontalScrollController.jumpTo(newOffset);
+                      }
                     },
+                    child: ListView.builder(
+                      controller: _horizontalScrollController,
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: appNames.length,
+                      itemBuilder: (context, index) {
+                        final appName = appNames[index];
+                        final isSelected = _selectedAppName == appName;
+
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: FilterChip(
+                            selected: isSelected,
+                            label: Text(
+                              appName,
+                              strutStyle: StrutStyle(
+                                fontFamily: 'Cairo',
+                              ),
+                            ),
+                            avatar: Icon(
+                              Icons.apps,
+                              size: 18,
+                              color: isSelected
+                                  ? Colors.white
+                                  : Theme.of(context).colorScheme.primary,
+                            ),
+                            selectedColor:
+                                Theme.of(context).colorScheme.primary,
+                            checkmarkColor: Colors.white,
+                            labelStyle: TextStyle(
+                              fontFamily: 'Cairo',
+                              color: isSelected ? Colors.white : Colors.black87,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            onSelected: (selected) {
+                              setState(() {
+                                _selectedAppName = selected ? appName : null;
+                              });
+                            },
+                          ),
+                        );
+                      },
+                    ),
                   ),
                 ),
 
