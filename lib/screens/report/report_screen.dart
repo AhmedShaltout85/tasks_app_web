@@ -32,12 +32,19 @@ class _ReportScreenState extends State<ReportScreen>
   String? selectedStatus;
   String? selectedIsRemote;
   String? selectedDepartment;
+  String? selectedComplaintType;
   bool _isFilterExpanded = true;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
 
   final List<String> statusList = ['الكل', 'معلق', 'مكتمل'];
   final List<String> isRemoteList = ['الكل', 'عن بعد', 'فى الموقع'];
+  final List<String> complaintTypeList = [
+    'الكل',
+    'شبكات',
+    'هاردوير',
+    'سوفتوير'
+  ];
 
   @override
   void initState() {
@@ -48,6 +55,7 @@ class _ReportScreenState extends State<ReportScreen>
     selectedStatus = 'الكل';
     selectedIsRemote = 'الكل';
     selectedDepartment = 'الكل';
+    selectedComplaintType = 'الكل';
 
     _animationController = AnimationController(
       vsync: this,
@@ -248,6 +256,11 @@ class _ReportScreenState extends State<ReportScreen>
         if (isRemoteString != selectedIsRemote) return false;
       }
 
+      if (selectedComplaintType != null && selectedComplaintType != 'الكل') {
+        final taskNote = task.taskNote ?? '';
+        if (!taskNote.contains(selectedComplaintType!)) return false;
+      }
+
       return true;
     }).toList();
   }
@@ -264,6 +277,7 @@ class _ReportScreenState extends State<ReportScreen>
       selectedVisitPlace = 'الكل';
       selectedStatus = 'الكل';
       selectedIsRemote = 'الكل';
+      selectedComplaintType = 'الكل';
 
       // Reset assignee respecting role
       if (userRole == 'USER') {
@@ -330,30 +344,33 @@ class _ReportScreenState extends State<ReportScreen>
                 allUsers: allUsers,
               );
 
-              return IconButton(
-                icon: Icon(Icons.download_rounded,
-                    size: 22, color: colorScheme.onSurface),
-                onPressed: filteredData.isEmpty
-                    ? null
-                    : () {
-                        generatePDF(
-                          filteredData: filteredData,
-                          startDate: startDate,
-                          endDate: endDate,
-                          selectedStatus: selectedStatus,
-                          selectedAssignee: selectedAssignee,
-                          selectedApplication: selectedApplication,
-                          selectedVisitPlace: selectedVisitPlace,
-                          selectedIsRemote: selectedIsRemote,
-                        );
-                        ReusableToast.showToast(
-                          message: 'تم تنزيل التقرير بنجاح pdf',
-                          bgColor: Colors.green,
-                          textColor: Colors.white,
-                          fontSize: 16,
-                        );
-                      },
-                tooltip: 'تنزيل التقرير بنجاح pdf',
+              return Padding(
+                padding: const EdgeInsets.only(right: 20),
+                child: IconButton(
+                  icon: Icon(Icons.download_rounded,
+                      size: 22, color: colorScheme.onSurface),
+                  onPressed: filteredData.isEmpty
+                      ? null
+                      : () {
+                          generatePDF(
+                            filteredData: filteredData,
+                            startDate: startDate,
+                            endDate: endDate,
+                            selectedStatus: selectedStatus,
+                            selectedAssignee: selectedAssignee,
+                            selectedApplication: selectedApplication,
+                            selectedVisitPlace: selectedVisitPlace,
+                            selectedIsRemote: selectedIsRemote,
+                          );
+                          ReusableToast.showToast(
+                            message: 'تم تنزيل التقرير بنجاح pdf',
+                            bgColor: Colors.green,
+                            textColor: Colors.white,
+                            fontSize: 16,
+                          );
+                        },
+                  tooltip: 'تنزيل التقرير بنجاح pdf',
+                ),
               );
             },
           ),
@@ -684,25 +701,47 @@ class _ReportScreenState extends State<ReportScreen>
                                     Row(
                                       children: [
                                         Expanded(
-                                          child: ElevatedButton.icon(
-                                            onPressed: () => _clearFilters(
-                                              userRole: userRole,
-                                              userDepartment: userDepartment,
-                                              userUsername: userUsername,
-                                            ),
-                                            icon:
-                                                const Icon(Icons.clear_rounded),
-                                            label: const Text(''),
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: Theme.of(context)
-                                                  .colorScheme
-                                                  .surfaceContainerHighest,
-                                              foregroundColor:
-                                                  Colors.grey.shade700,
-                                              elevation: 0,
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
+                                          child: _buildDropdown(
+                                            label: 'نوع الشكوى',
+                                            value: complaintTypeList.contains(
+                                                    selectedComplaintType)
+                                                ? selectedComplaintType!
+                                                : 'الكل',
+                                            items: complaintTypeList,
+                                            icon: Icons.report_problem_rounded,
+                                            onChanged: (value) {
+                                              setState(() =>
+                                                  selectedComplaintType =
+                                                      value);
+                                            },
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Container(
+                                            padding: EdgeInsets.only(top: 15),
+                                            height: 60,
+                                            child: ElevatedButton.icon(
+                                              onPressed: () => _clearFilters(
+                                                userRole: userRole,
+                                                userDepartment: userDepartment,
+                                                userUsername: userUsername,
+                                              ),
+                                              icon: const Icon(
+                                                  Icons.clear_rounded),
+                                              label: const Text(''),
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: Theme.of(
+                                                        context)
+                                                    .colorScheme
+                                                    .surfaceContainerHighest,
+                                                foregroundColor:
+                                                    Colors.grey.shade700,
+                                                elevation: 0,
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(12),
+                                                ),
                                               ),
                                             ),
                                           ),
@@ -839,7 +878,7 @@ class _ReportScreenState extends State<ReportScreen>
                   Text(
                     date != null
                         ? DateFormat('MMM dd, yyyy').format(date)
-                        : 'Select Date',
+                        : 'أختر التاريخ',
                     style: TextStyle(
                       fontSize: 14,
                       color: date != null
@@ -1125,8 +1164,8 @@ class _ReportScreenState extends State<ReportScreen>
                   _buildInfoRow(
                     Icons.group,
                     task.coOperator.isNotEmpty
-                        ? '${task.coOperator.toString().replaceAll('[', ' ').replaceAll(']', ' ')} Co-Operators'
-                        : 'No Co-Operators',
+                        ? '${task.coOperator.toString().replaceAll('[', ' ').replaceAll(']', ' ')} زملاء متعاونون'
+                        : 'لم يتم تخصيص زملاء متعاونون',
                     const Color(0xFF69948B),
                   ),
                 ],

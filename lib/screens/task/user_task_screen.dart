@@ -831,27 +831,25 @@ class _TaskScreenState extends State<UserTaskScreen> {
                                           ScaffoldMessenger.of(context)
                                               .showSnackBar(
                                             SnackBar(
-                                              content: Row(
-                                                children: [
-                                                  Center(
-                                                    child: Icon(
+                                              content: Center(
+                                                child: Row(
+                                                  children: [
+                                                    Icon(
                                                       newIsRemote
                                                           ? Icons.home_work
                                                           : Icons.home,
                                                       color: Colors.white,
                                                     ),
-                                                  ),
-                                                  const SizedBox(width: 12),
-                                                  Expanded(
-                                                    child: Center(
+                                                    const SizedBox(width: 12),
+                                                    Expanded(
                                                       child: Text(
                                                         newIsRemote
                                                             ? 'تم تغيير إلى العمل عن بعد'
                                                             : 'تم تغيير إلى موقع العمل',
                                                       ),
                                                     ),
-                                                  ),
-                                                ],
+                                                  ],
+                                                ),
                                               ),
                                               backgroundColor:
                                                   Colors.blue.shade700,
@@ -926,17 +924,15 @@ class _TaskScreenState extends State<UserTaskScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Row(
-              children: [
-                Center(
-                  child: Icon(
+            content: Center(
+              child: Row(
+                children: [
+                  Icon(
                     task.taskStatus ? Icons.check_circle : Icons.info,
                     color: Colors.white,
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Center(
+                  const SizedBox(width: 12),
+                  Expanded(
                     child: Text(
                       task.taskStatus ? 'تم انهاء المهمة' : 'تم تفعيل المهمة',
                       style: const TextStyle(
@@ -945,8 +941,8 @@ class _TaskScreenState extends State<UserTaskScreen> {
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
             backgroundColor: Colors.green.shade700,
             behavior: SnackBarBehavior.floating,
@@ -961,16 +957,14 @@ class _TaskScreenState extends State<UserTaskScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Row(
-              children: [
-                Center(
-                    child:
-                        const Icon(Icons.error_outline, color: Colors.white)),
-                const SizedBox(width: 12),
-                Expanded(
-                    child: Center(
-                        child: Text('Error updating task: ${e.toString()}'))),
-              ],
+            content: Center(
+              child: Row(
+                children: [
+                  const Icon(Icons.error_outline, color: Colors.white),
+                  const SizedBox(width: 12),
+                  Expanded(child: Text('Error updating task: ${e.toString()}')),
+                ],
+              ),
             ),
             backgroundColor: Colors.red.shade700,
             behavior: SnackBarBehavior.floating,
@@ -1021,17 +1015,15 @@ class _TaskScreenState extends State<UserTaskScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Row(
-              children: [
-                Center(
-                  child: Icon(
+            content: Center(
+              child: Row(
+                children: [
+                  Icon(
                     newIsRemote ? Icons.home_work : Icons.home,
                     color: Colors.white,
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Center(
+                  const SizedBox(width: 12),
+                  Expanded(
                     child: Text(
                       newIsRemote
                           ? 'تم تغيير إلى العمل عن بعد'
@@ -1042,8 +1034,8 @@ class _TaskScreenState extends State<UserTaskScreen> {
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
             backgroundColor: Colors.blue.shade700,
             behavior: SnackBarBehavior.floating,
@@ -1058,16 +1050,14 @@ class _TaskScreenState extends State<UserTaskScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Row(
-              children: [
-                Center(
-                    child:
-                        const Icon(Icons.error_outline, color: Colors.white)),
-                const SizedBox(width: 12),
-                Expanded(
-                    child: Center(
-                        child: Text('Error updating task: ${e.toString()}'))),
-              ],
+            content: Center(
+              child: Row(
+                children: [
+                  const Icon(Icons.error_outline, color: Colors.white),
+                  const SizedBox(width: 12),
+                  Expanded(child: Text('Error updating task: ${e.toString()}')),
+                ],
+              ),
             ),
             backgroundColor: Colors.red.shade700,
             behavior: SnackBarBehavior.floating,

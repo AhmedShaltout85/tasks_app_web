@@ -811,44 +811,47 @@ class _PreventiveMaintenanceReportScreenState
                 allUsers: allUsers,
               );
 
-              return IconButton(
-                icon: Icon(Icons.download_rounded,
-                    size: 22, color: colorScheme.onSurface),
-                onPressed: filteredData.isEmpty
-                    ? null
-                    : () async {
-                        ReusableToast.showToast(
-                          message: 'جاري إنشاء PDF',
-                          bgColor: Colors.blue,
-                          textColor: Colors.white,
-                          fontSize: 14,
-                        );
-                        try {
-                          await generatePreventiveMaintenancePDF(
-                            filteredData: filteredData,
-                            selectedUsername: selectedUsername,
-                            selectedAppName: selectedAppName,
-                            selectedPlaceName: selectedVisitPlace,
-                            selectedIsRemote: selectedIsRemote,
-                            startDate: startDate,
-                            endDate: endDate,
-                          );
-                          final hasConnection =
-                              await _connectivity.hasConnection();
-                          if (!hasConnection && mounted) {
-                            await ConnectionDialogService.showNoInternetDialog(
-                                context);
-                          }
-                        } catch (e) {
+              return Padding(
+                padding: const EdgeInsets.only(right: 20.0),
+                child: IconButton(
+                  icon: Icon(Icons.download_rounded,
+                      size: 22, color: colorScheme.onSurface),
+                  onPressed: filteredData.isEmpty
+                      ? null
+                      : () async {
                           ReusableToast.showToast(
-                            message: 'خطأ في إنشاء PDF: $e',
-                            bgColor: Colors.red,
+                            message: 'جاري إنشاء PDF',
+                            bgColor: Colors.blue,
                             textColor: Colors.white,
                             fontSize: 14,
                           );
-                        }
-                      },
-                tooltip: 'تحميل تقرير',
+                          try {
+                            await generatePreventiveMaintenancePDF(
+                              filteredData: filteredData,
+                              selectedUsername: selectedUsername,
+                              selectedAppName: selectedAppName,
+                              selectedPlaceName: selectedVisitPlace,
+                              selectedIsRemote: selectedIsRemote,
+                              startDate: startDate,
+                              endDate: endDate,
+                            );
+                            final hasConnection =
+                                await _connectivity.hasConnection();
+                            if (!hasConnection && mounted) {
+                              await ConnectionDialogService
+                                  .showNoInternetDialog(context);
+                            }
+                          } catch (e) {
+                            ReusableToast.showToast(
+                              message: 'خطأ في إنشاء PDF: $e',
+                              bgColor: Colors.red,
+                              textColor: Colors.white,
+                              fontSize: 14,
+                            );
+                          }
+                        },
+                  tooltip: 'تحميل تقرير',
+                ),
               );
             },
           ),
