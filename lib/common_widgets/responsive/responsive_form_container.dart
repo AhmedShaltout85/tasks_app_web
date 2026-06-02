@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:responsive_framework/responsive_framework.dart';
+import 'package:tasks_app/utils/app_colors.dart';
 
 void showResponsiveForm({
   required BuildContext context,
@@ -33,6 +34,7 @@ void showResponsiveForm({
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
                             fontFamily: 'Cairo',
+                            color: AppColors.primaryColor,
                           ),
                         ),
                       ),
@@ -83,6 +85,7 @@ void showResponsiveForm({
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                     fontFamily: 'Cairo',
+                    color: AppColors.primaryColor,
                   ),
                 ),
                 const SizedBox(height: 16),

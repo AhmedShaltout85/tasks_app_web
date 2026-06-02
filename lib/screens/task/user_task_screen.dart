@@ -833,18 +833,22 @@ class _TaskScreenState extends State<UserTaskScreen> {
                                             SnackBar(
                                               content: Row(
                                                 children: [
-                                                  Icon(
-                                                    newIsRemote
-                                                        ? Icons.home_work
-                                                        : Icons.home,
-                                                    color: Colors.white,
+                                                  Center(
+                                                    child: Icon(
+                                                      newIsRemote
+                                                          ? Icons.home_work
+                                                          : Icons.home,
+                                                      color: Colors.white,
+                                                    ),
                                                   ),
                                                   const SizedBox(width: 12),
                                                   Expanded(
-                                                    child: Text(
-                                                      newIsRemote
-                                                          ? 'تم تغيير إلى العمل عن بعد'
-                                                          : 'تم تغيير إلى موقع العمل',
+                                                    child: Center(
+                                                      child: Text(
+                                                        newIsRemote
+                                                            ? 'تم تغيير إلى العمل عن بعد'
+                                                            : 'تم تغيير إلى موقع العمل',
+                                                      ),
                                                     ),
                                                   ),
                                                 ],
@@ -924,17 +928,21 @@ class _TaskScreenState extends State<UserTaskScreen> {
           SnackBar(
             content: Row(
               children: [
-                Icon(
-                  task.taskStatus ? Icons.check_circle : Icons.info,
-                  color: Colors.white,
+                Center(
+                  child: Icon(
+                    task.taskStatus ? Icons.check_circle : Icons.info,
+                    color: Colors.white,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text(
-                    task.taskStatus ? 'تم انهاء المهمة' : 'تم تفعيل المهمة',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w500,
-                      fontFamily: 'Cairo',
+                  child: Center(
+                    child: Text(
+                      task.taskStatus ? 'تم انهاء المهمة' : 'تم تفعيل المهمة',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w500,
+                        fontFamily: 'Cairo',
+                      ),
                     ),
                   ),
                 ),
@@ -955,9 +963,13 @@ class _TaskScreenState extends State<UserTaskScreen> {
           SnackBar(
             content: Row(
               children: [
-                const Icon(Icons.error_outline, color: Colors.white),
+                Center(
+                    child:
+                        const Icon(Icons.error_outline, color: Colors.white)),
                 const SizedBox(width: 12),
-                Expanded(child: Text('Error updating task: ${e.toString()}')),
+                Expanded(
+                    child: Center(
+                        child: Text('Error updating task: ${e.toString()}'))),
               ],
             ),
             backgroundColor: Colors.red.shade700,
@@ -1011,19 +1023,23 @@ class _TaskScreenState extends State<UserTaskScreen> {
           SnackBar(
             content: Row(
               children: [
-                Icon(
-                  newIsRemote ? Icons.home_work : Icons.home,
-                  color: Colors.white,
+                Center(
+                  child: Icon(
+                    newIsRemote ? Icons.home_work : Icons.home,
+                    color: Colors.white,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text(
-                    newIsRemote
-                        ? 'تم تغيير إلى العمل عن بعد'
-                        : 'تم تغيير إلى موقع العمل',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w500,
-                      fontFamily: 'Cairo',
+                  child: Center(
+                    child: Text(
+                      newIsRemote
+                          ? 'تم تغيير إلى العمل عن بعد'
+                          : 'تم تغيير إلى موقع العمل',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w500,
+                        fontFamily: 'Cairo',
+                      ),
                     ),
                   ),
                 ),
@@ -1044,9 +1060,13 @@ class _TaskScreenState extends State<UserTaskScreen> {
           SnackBar(
             content: Row(
               children: [
-                const Icon(Icons.error_outline, color: Colors.white),
+                Center(
+                    child:
+                        const Icon(Icons.error_outline, color: Colors.white)),
                 const SizedBox(width: 12),
-                Expanded(child: Text('Error updating task: ${e.toString()}')),
+                Expanded(
+                    child: Center(
+                        child: Text('Error updating task: ${e.toString()}'))),
               ],
             ),
             backgroundColor: Colors.red.shade700,
@@ -1130,9 +1150,11 @@ class _TaskScreenState extends State<UserTaskScreen> {
                 Navigator.pop(dialogContext);
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text(
-                      'تم تحديث الملاحظة',
-                      style: TextStyle(fontFamily: 'Cairo'),
+                    content: Center(
+                      child: Text(
+                        'تم تحديث الملاحظة',
+                        style: TextStyle(fontFamily: 'Cairo'),
+                      ),
                     ),
                     backgroundColor: Colors.green,
                   ),
@@ -1216,7 +1238,7 @@ class _AddTaskFormContentState extends State<_AddTaskFormContent> {
     super.initState();
     _selectedAppName = 'اختر';
     _selectedPlaceName = 'اختر';
-    _selectedCoOperators = List.from(widget.employeeNames);
+    _selectedCoOperators = [];
   }
 
   @override

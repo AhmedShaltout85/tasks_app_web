@@ -890,17 +890,21 @@ class _TaskScreenState extends State<TaskScreen> {
           SnackBar(
             content: Row(
               children: [
-                Icon(
-                  task.taskStatus ? Icons.check_circle : Icons.info,
-                  color: Colors.white,
+                Center(
+                  child: Icon(
+                    task.taskStatus ? Icons.check_circle : Icons.info,
+                    color: Colors.white,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text(
-                    task.taskStatus ? 'تم انهاء المهمة' : 'تفعيل المهمة',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w500,
-                      fontFamily: 'Cairo',
+                  child: Center(
+                    child: Text(
+                      task.taskStatus ? 'تم انهاء المهمة' : 'تفعيل المهمة',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w500,
+                        fontFamily: 'Cairo',
+                      ),
                     ),
                   ),
                 ),
@@ -921,12 +925,16 @@ class _TaskScreenState extends State<TaskScreen> {
           SnackBar(
             content: Row(
               children: [
-                const Icon(Icons.error_outline, color: Colors.white),
+                Center(
+                    child:
+                        const Icon(Icons.error_outline, color: Colors.white)),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text(
-                    'Error updating task: ${e.toString()}',
-                    style: const TextStyle(fontFamily: 'Cairo'),
+                  child: Center(
+                    child: Text(
+                      'Error updating task: ${e.toString()}',
+                      style: const TextStyle(fontFamily: 'Cairo'),
+                    ),
                   ),
                 ),
               ],
@@ -1063,14 +1071,18 @@ class _TaskScreenState extends State<TaskScreen> {
                     SnackBar(
                       content: Row(
                         children: const [
-                          Icon(Icons.check_circle, color: Colors.white),
+                          Center(
+                              child: Icon(Icons.check_circle,
+                                  color: Colors.white)),
                           SizedBox(width: 12),
                           Expanded(
-                            child: Text(
-                              'تم حذف المهمة بنجاح',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w500,
-                                fontFamily: 'Cairo',
+                            child: Center(
+                              child: Text(
+                                'تم حذف المهمة بنجاح',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                  fontFamily: 'Cairo',
+                                ),
                               ),
                             ),
                           ),
@@ -1091,12 +1103,16 @@ class _TaskScreenState extends State<TaskScreen> {
                     SnackBar(
                       content: Row(
                         children: [
-                          const Icon(Icons.error_outline, color: Colors.white),
+                          Center(
+                              child: const Icon(Icons.error_outline,
+                                  color: Colors.white)),
                           const SizedBox(width: 12),
                           Expanded(
-                            child: Text(
-                              'Error deleting task: ${e.toString()}',
-                              style: const TextStyle(fontFamily: 'Cairo'),
+                            child: Center(
+                              child: Text(
+                                'Error deleting task: ${e.toString()}',
+                                style: const TextStyle(fontFamily: 'Cairo'),
+                              ),
                             ),
                           ),
                         ],
