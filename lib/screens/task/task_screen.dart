@@ -888,17 +888,15 @@ class _TaskScreenState extends State<TaskScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Row(
-              children: [
-                Center(
-                  child: Icon(
+            content: Center(
+              child: Row(
+                children: [
+                  Icon(
                     task.taskStatus ? Icons.check_circle : Icons.info,
                     color: Colors.white,
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Center(
+                  const SizedBox(width: 12),
+                  Expanded(
                     child: Text(
                       task.taskStatus ? 'تم انهاء المهمة' : 'تفعيل المهمة',
                       style: const TextStyle(
@@ -907,8 +905,8 @@ class _TaskScreenState extends State<TaskScreen> {
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
             backgroundColor: Colors.green.shade700,
             behavior: SnackBarBehavior.floating,
@@ -923,21 +921,19 @@ class _TaskScreenState extends State<TaskScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Row(
-              children: [
-                Center(
-                    child:
-                        const Icon(Icons.error_outline, color: Colors.white)),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Center(
+            content: Center(
+              child: Row(
+                children: [
+                  const Icon(Icons.error_outline, color: Colors.white),
+                  const SizedBox(width: 12),
+                  Expanded(
                     child: Text(
                       'Error updating task: ${e.toString()}',
                       style: const TextStyle(fontFamily: 'Cairo'),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
             backgroundColor: Colors.red.shade700,
             behavior: SnackBarBehavior.floating,
@@ -1028,19 +1024,21 @@ class _TaskScreenState extends State<TaskScreen> {
               if (mounted) {
                 ScaffoldMessenger.of(dialogContext).showSnackBar(
                   const SnackBar(
-                    content: Row(
-                      children: [
-                        SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
+                    content: Center(
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
                           ),
-                        ),
-                        SizedBox(width: 12),
-                        Text('جاري الحذف...'),
-                      ],
+                          SizedBox(width: 12),
+                          Text('جاري الحذف...'),
+                        ],
+                      ),
                     ),
                     backgroundColor: Colors.orange,
                     behavior: SnackBarBehavior.floating,
@@ -1069,14 +1067,12 @@ class _TaskScreenState extends State<TaskScreen> {
                   ScaffoldMessenger.of(dialogContext).hideCurrentSnackBar();
                   ScaffoldMessenger.of(dialogContext).showSnackBar(
                     SnackBar(
-                      content: Row(
-                        children: const [
-                          Center(
-                              child: Icon(Icons.check_circle,
-                                  color: Colors.white)),
-                          SizedBox(width: 12),
-                          Expanded(
-                            child: Center(
+                      content: Center(
+                        child: Row(
+                          children: const [
+                            Icon(Icons.check_circle, color: Colors.white),
+                            SizedBox(width: 12),
+                            Expanded(
                               child: Text(
                                 'تم حذف المهمة بنجاح',
                                 style: TextStyle(
@@ -1085,8 +1081,8 @@ class _TaskScreenState extends State<TaskScreen> {
                                 ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                       backgroundColor: Colors.green.shade700,
                       behavior: SnackBarBehavior.floating,
@@ -1101,21 +1097,20 @@ class _TaskScreenState extends State<TaskScreen> {
                   ScaffoldMessenger.of(dialogContext).hideCurrentSnackBar();
                   ScaffoldMessenger.of(dialogContext).showSnackBar(
                     SnackBar(
-                      content: Row(
-                        children: [
-                          Center(
-                              child: const Icon(Icons.error_outline,
-                                  color: Colors.white)),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Center(
+                      content: Center(
+                        child: Row(
+                          children: [
+                            const Icon(Icons.error_outline,
+                                color: Colors.white),
+                            const SizedBox(width: 12),
+                            Expanded(
                               child: Text(
                                 'Error deleting task: ${e.toString()}',
                                 style: const TextStyle(fontFamily: 'Cairo'),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                       backgroundColor: Colors.red.shade700,
                       behavior: SnackBarBehavior.floating,
