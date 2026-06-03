@@ -890,19 +890,18 @@ class _TaskScreenState extends State<TaskScreen> {
           SnackBar(
             content: Center(
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
                     task.taskStatus ? Icons.check_circle : Icons.info,
                     color: Colors.white,
                   ),
                   const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      task.taskStatus ? 'تم انهاء المهمة' : 'تفعيل المهمة',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w500,
-                        fontFamily: 'Cairo',
-                      ),
+                  Text(
+                    task.taskStatus ? 'تم انهاء المهمة' : 'تفعيل المهمة',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w500,
+                      fontFamily: 'Cairo',
                     ),
                   ),
                 ],
@@ -956,7 +955,9 @@ class _TaskScreenState extends State<TaskScreen> {
           children: [
             Icon(Icons.warning_amber_rounded, color: Colors.orange.shade700),
             const SizedBox(width: 12),
-            const Text('حذف المهمة', style: TextStyle(fontFamily: 'Cairo')),
+            const Text('حذف المهمة',
+                textAlign: TextAlign.right,
+                style: TextStyle(fontFamily: 'Cairo')),
           ],
         ),
         content: Column(
@@ -965,7 +966,11 @@ class _TaskScreenState extends State<TaskScreen> {
           children: [
             const Text(
               'هل أنت متأكد من حذف هذه المهمة؟',
-              style: TextStyle(fontSize: 16, fontFamily: 'Cairo'),
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                fontSize: 16,
+                fontFamily: 'Cairo',
+              ),
             ),
             const SizedBox(height: 12),
             Container(
@@ -987,6 +992,7 @@ class _TaskScreenState extends State<TaskScreen> {
             const SizedBox(height: 12),
             const Text(
               'هذه العملية لا يمكن التراجع عنها',
+              textAlign: TextAlign.right,
               style: TextStyle(
                 fontFamily: 'Cairo',
                 fontSize: 12,
@@ -1026,6 +1032,7 @@ class _TaskScreenState extends State<TaskScreen> {
                   const SnackBar(
                     content: Center(
                       child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           SizedBox(
                             width: 20,
@@ -1069,16 +1076,15 @@ class _TaskScreenState extends State<TaskScreen> {
                     SnackBar(
                       content: Center(
                         child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: const [
                             Icon(Icons.check_circle, color: Colors.white),
                             SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                'تم حذف المهمة بنجاح',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w500,
-                                  fontFamily: 'Cairo',
-                                ),
+                            Text(
+                              'تم حذف المهمة بنجاح',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w500,
+                                fontFamily: 'Cairo',
                               ),
                             ),
                           ],
@@ -1099,6 +1105,7 @@ class _TaskScreenState extends State<TaskScreen> {
                     SnackBar(
                       content: Center(
                         child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             const Icon(Icons.error_outline,
                                 color: Colors.white),
