@@ -1181,7 +1181,7 @@ class _TaskScreenState extends State<UserTaskScreen> {
               backgroundColor: Colors.green.shade700,
               content: Center(
                 child: Text(
-                  'Task added: ${values['task_title']}',
+                  'تم انشاء المهمة: ${values['task_title']}',
                   style: const TextStyle(
                     fontFamily: 'Cairo',
                     color: Colors.white,
@@ -1284,7 +1284,7 @@ class _AddTaskFormContentState extends State<_AddTaskFormContent> {
               color: isDark ? Colors.white : Colors.black87,
             ),
             decoration: InputDecoration(
-              labelText: 'اسم التطبيق',
+              labelText: 'المنظومة',
               labelStyle: TextStyle(
                 fontFamily: 'Cairo',
                 color: isDark ? Colors.grey[400] : Colors.grey[700],
@@ -1325,7 +1325,7 @@ class _AddTaskFormContentState extends State<_AddTaskFormContent> {
               color: isDark ? Colors.white : Colors.black87,
             ),
             decoration: InputDecoration(
-              labelText: 'اسم المكان',
+              labelText: 'المكان الرئيسي',
               labelStyle: TextStyle(
                 fontFamily: 'Cairo',
                 color: isDark ? Colors.grey[400] : Colors.grey[700],
