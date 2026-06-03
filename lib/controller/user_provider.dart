@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 
 import '../models/user_model.dart';
 import '../newtork_repos/remote_repo/api_repos/api_network_user_repos_impl.dart';
+import '../newtork_repos/remote_repo/api_repos/dio_client.dart';
 import 'local_control/cache_helper.dart';
 
 class UserProvider with ChangeNotifier {
@@ -19,7 +20,25 @@ class UserProvider with ChangeNotifier {
   String? _token;
 
   UserProvider() {
+    _setupCallbacks();
     _init();
+  }
+
+  void _setupCallbacks() {
+    final dioClient = DioClient();
+    dioClient.setCallbacks(
+      credentialsGetter: getSavedCredentials,
+      onTokenRefreshed: (newToken, userData) async {
+        _token = newToken;
+        _currentUser = UserModel.fromJson(userData);
+        await _saveTokenToCache(newToken);
+        await _saveUserToCache(_currentUser!);
+        notifyListeners();
+      },
+      onReLoginFailed: () {
+        clearUserData();
+      },
+    );
   }
 
   bool get isInitializing => _isInitializing;
@@ -71,9 +90,34 @@ class UserProvider with ChangeNotifier {
         key: 'current_user', value: jsonEncode(user.toJson()));
   }
 
+  Future<void> _saveCredentialsToCache(String username, String password) async {
+    await CacheHelper.saveData(key: 'saved_username', value: username);
+    await CacheHelper.saveData(key: 'saved_password', value: password);
+  }
+
   Future<void> _clearTokenFromCache() async {
     await CacheHelper.removeData(key: 'auth_token');
     await CacheHelper.removeData(key: 'current_user');
+    await CacheHelper.removeData(key: 'saved_username');
+    await CacheHelper.removeData(key: 'saved_password');
+  }
+
+  Future<Map<String, String>?> getSavedCredentials() async {
+    final username = CacheHelper.getData(key: 'saved_username');
+    final password = CacheHelper.getData(key: 'saved_password');
+    if (username != null && password != null) {
+      return {'username': username as String, 'password': password as String};
+    }
+    return null;
+  }
+
+  Future<void> refreshAndNotify(String token, UserModel user) async {
+    _token = token;
+    _currentUser = user;
+    _api.setToken(token);
+    await _saveTokenToCache(token);
+    await _saveUserToCache(user);
+    notifyListeners();
   }
 
   UserModel? get currentUser => _currentUser;
@@ -146,6 +190,7 @@ class UserProvider with ChangeNotifier {
       await _saveTokenToCache(_token!);
       _currentUser = UserModel.fromJson(response);
       await _saveUserToCache(_currentUser!);
+      await _saveCredentialsToCache(username, password);
       log('Current user set: ${_currentUser?.displayName}, role: ${_currentUser?.role}, department: ${_currentUser?.department}');
       _error = null;
       // notifyListeners();
@@ -179,6 +224,7 @@ class UserProvider with ChangeNotifier {
     _currentUser = null;
     _users = [];
     _error = null;
+    await _clearTokenFromCache();
     notifyListeners();
   }
 

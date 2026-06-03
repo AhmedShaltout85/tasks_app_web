@@ -1159,7 +1159,7 @@ class _ReportScreenState extends State<ReportScreen>
                       const Color(0xFF60048B)),
                   const SizedBox(height: 8),
                   _buildInfoRow(Icons.home_work_rounded, isRemote,
-                      const Color(0xFF69948B)),
+                      const Color.fromARGB(255, 212, 27, 182)),
                   const SizedBox(height: 8),
                   _buildInfoRow(
                     Icons.group,
@@ -1168,6 +1168,9 @@ class _ReportScreenState extends State<ReportScreen>
                         : 'لم يتم تخصيص زملاء متعاونون',
                     const Color(0xFF69948B),
                   ),
+                  const SizedBox(height: 8),
+                  _buildInfoRow(Icons.note, task.taskNote ?? 'لايوجد ملاحظات',
+                      const Color.fromARGB(255, 42, 9, 228)),
                 ],
               ),
             ),

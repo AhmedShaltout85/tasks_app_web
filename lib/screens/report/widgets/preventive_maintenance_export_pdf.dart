@@ -44,7 +44,7 @@ Future<void> generatePreventiveMaintenancePDF({
             child: pw.Directionality(
               textDirection: pw.TextDirection.rtl,
               child: pw.Text(
-                'تقرير الصيانة الوقائية - Preventive Maintenance Report',
+                'تقرير الصيانة الوقائية',
                 style: pw.TextStyle(
                   fontSize: 20,
                   fontWeight: pw.FontWeight.bold,
@@ -65,13 +65,12 @@ Future<void> generatePreventiveMaintenancePDF({
               ),
             ),
           ),
-        
           pw.SizedBox(height: 10),
           if (selectedUsername != null && selectedUsername != 'الكل')
             pw.Directionality(
               textDirection: pw.TextDirection.rtl,
               child: pw.Text(
-                'المستخدم: $selectedUsername',
+                'مخصص ل: $selectedUsername',
                 style: pw.TextStyle(fontSize: headerFontSize, font: fontArabic),
               ),
             ),
@@ -87,7 +86,7 @@ Future<void> generatePreventiveMaintenancePDF({
             pw.Directionality(
               textDirection: pw.TextDirection.rtl,
               child: pw.Text(
-                'المكان: $selectedPlaceName',
+                'المكان الرئيسي: $selectedPlaceName',
                 style: pw.TextStyle(fontSize: headerFontSize, font: fontArabic),
               ),
             ),
@@ -116,21 +115,17 @@ Future<void> generatePreventiveMaintenancePDF({
                 pw.TableRow(
                   decoration: const pw.BoxDecoration(color: PdfColors.blue100),
                   children: [
+                    _headerCell('المنظومة', cellPadding, headerTextStyle),
+                    _headerCell('الإجراء', cellPadding, headerTextStyle),
+                    _headerCell('الموظف', cellPadding, headerTextStyle),
                     _headerCell(
-                        'اسم التطبيق', cellPadding, headerTextStyle),
-                    _headerCell(
-                        'الإجراء', cellPadding, headerTextStyle),
-                    _headerCell('المستخدم', cellPadding, headerTextStyle),
-                    _headerCell('المكان', cellPadding, headerTextStyle),
-                    _headerCell('المكان الفرعي', cellPadding,
-                        headerTextStyle),
-                    _headerCell('النوع', cellPadding, headerTextStyle),
+                        'المكان الرئيسي', cellPadding, headerTextStyle),
+                    _headerCell('المكان الفرعي', cellPadding, headerTextStyle),
+                    _headerCell('نوع الصيانة', cellPadding, headerTextStyle),
                   ],
                 ),
                 ...filteredData.map((item) {
-                  String type = item.isRemote == 'true'
-                      ? 'عن بُعد'
-                      : 'موقع';
+                  String type = item.isRemote == 'true' ? 'عن بُعد' : 'موقع';
                   return pw.TableRow(
                     children: [
                       _contentCell(cellPadding, item.appName, contentTextStyle),
