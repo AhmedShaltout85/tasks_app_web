@@ -695,8 +695,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               final userProvider =
                   Provider.of<UserProvider>(ctx, listen: false);
 
-              // Call clearUserData method (you need to implement this in your UserProvider)
-              userProvider.clearUserData();
+              // Call signOut to revoke refresh token server-side
+              await userProvider.signOut();
 
               ReusableToast.showToast(
                 message: 'تم تسجيل الخروج بنجاح',

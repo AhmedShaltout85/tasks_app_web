@@ -14,7 +14,9 @@ abstract class ApiNetworkUserRepos {
     required String password,
   });
 
-  Future<void> signOut();
+  Future<void> signOut({String? refreshToken});
+
+  Future<Map<String, dynamic>> refreshToken({required String refreshToken});
 
   Future<List<UserModel>> getAllUsers();
 

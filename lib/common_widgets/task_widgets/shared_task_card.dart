@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 Color getCardColor(dynamic task) {
   final colorMap = {
@@ -267,6 +268,15 @@ class SharedTaskCard extends StatelessWidget {
                     color: Colors.orange,
                   ),
                 ],
+                const SizedBox(height: 8),
+                SharedDetailRow(
+                  icon: Icons.calendar_month,
+                  value: task.expectedCompletionDate != null
+                      ? DateFormat('yyyy-MM-dd')
+                          .format(task.expectedCompletionDate)
+                      : '',
+                  color: Colors.green,
+                ),
                 const SizedBox(height: 8),
                 SharedDetailRow(
                   icon: Icons.group,

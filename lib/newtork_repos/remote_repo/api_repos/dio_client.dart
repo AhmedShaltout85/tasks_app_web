@@ -1,10 +1,12 @@
-import 'package:dio/dio.dart';
+import 'dart:async';
+import 'dart:collection';
 import 'dart:developer';
 
-typedef CredentialsGetter = Future<Map<String, String>?> Function();
-typedef OnTokenRefreshed = Future<void> Function(
-    String token, Map<String, dynamic> userData);
-typedef OnReLoginFailed = void Function();
+import 'package:dio/dio.dart';
+
+typedef OnTokensRefreshed = Future<void> Function(
+    String newAccessToken, String newRefreshToken);
+typedef OnSessionExpired = void Function();
 
 class DioClient {
   // static const String _baseUrl = 'http://localhost:9999/tasks-api/api'; //LOCALHOST(LOCAL_SERVER)
@@ -15,11 +17,12 @@ class DioClient {
   late final Dio _dio;
   late final Dio _dioForRefresh;
   String? _token;
+  String? _refreshToken;
   bool _isRefreshing = false;
+  final Queue<_PendingRequest> _pendingRequests = Queue();
 
-  CredentialsGetter? _credentialsGetter;
-  OnTokenRefreshed? _onTokenRefreshed;
-  OnReLoginFailed? _onReLoginFailed;
+  OnTokensRefreshed? _onTokensRefreshed;
+  OnSessionExpired? _onSessionExpired;
 
   DioClient._() {
     _dio = Dio(BaseOptions(
@@ -40,9 +43,11 @@ class DioClient {
       onRequest: (options, handler) {
         log('REQUEST: ${options.method} ${options.path}');
         log('DATA: ${options.data}');
-        if (_token != null) {
+        if (_token != null && !_isAuthEndpoint(options.path)) {
           options.headers['Authorization'] = 'Bearer $_token';
           log('TOKEN ADDED: Bearer $_token');
+        } else if (_isAuthEndpoint(options.path)) {
+          log('SKIPPING TOKEN for auth endpoint: ${options.path}');
         } else {
           log('NO TOKEN - Request may be unauthorized');
         }
@@ -58,17 +63,9 @@ class DioClient {
         log('ERROR: $statusCode $path');
         log('ERROR DATA: ${error.response?.data}');
 
-        if (statusCode == 403 && path != '/auth/signin' && !_isRefreshing) {
-          final refreshed = await _tryRefreshToken();
-          if (refreshed) {
-            try {
-              error.requestOptions.headers['Authorization'] = 'Bearer $_token';
-              final response = await _dio.fetch(error.requestOptions);
-              return handler.resolve(response);
-            } on DioException catch (e) {
-              return handler.next(e);
-            }
-          }
+        if ((statusCode == 401 || statusCode == 403) &&
+            !_isAuthEndpoint(path)) {
+          return _handleTokenRefresh(error, handler);
         }
         return handler.next(error);
       },
@@ -79,14 +76,14 @@ class DioClient {
 
   Dio get dio => _dio;
 
+  Dio get dioForRefresh => _dioForRefresh;
+
   void setCallbacks({
-    required CredentialsGetter credentialsGetter,
-    required OnTokenRefreshed onTokenRefreshed,
-    required OnReLoginFailed onReLoginFailed,
+    required OnTokensRefreshed onTokensRefreshed,
+    required OnSessionExpired onSessionExpired,
   }) {
-    _credentialsGetter = credentialsGetter;
-    _onTokenRefreshed = onTokenRefreshed;
-    _onReLoginFailed = onReLoginFailed;
+    _onTokensRefreshed = onTokensRefreshed;
+    _onSessionExpired = onSessionExpired;
   }
 
   void setToken(String token) => _token = token;
@@ -95,45 +92,108 @@ class DioClient {
 
   String? get token => _token;
 
-  Future<bool> _tryRefreshToken() async {
-    if (_credentialsGetter == null) return false;
+  void setRefreshToken(String refreshToken) => _refreshToken = refreshToken;
+
+  void clearRefreshToken() => _refreshToken = null;
+
+  String? get refreshToken => _refreshToken;
+
+  bool _isAuthEndpoint(String path) {
+    return path == '/auth/signin' || path == '/auth/refresh-token';
+  }
+
+  Future<void> _handleTokenRefresh(
+      DioException error, ErrorInterceptorHandler handler) async {
+    if (_isRefreshing) {
+      final completer = Completer<void>();
+      _pendingRequests.add(_PendingRequest(error, handler, completer));
+      return completer.future;
+    }
+
+    if (_refreshToken == null) {
+      _onSessionExpired?.call();
+      return handler.next(error);
+    }
 
     _isRefreshing = true;
     try {
-      final credentials = await _credentialsGetter!();
-      if (credentials == null) {
-        log('No saved credentials for auto re-login');
-        _onReLoginFailed?.call();
-        return false;
-      }
-
-      log('Token expired, attempting auto re-login...');
-      final response = await _dioForRefresh.post('/auth/signin', data: {
-        'username': credentials['username'],
-        'password': credentials['password'],
+      log('Access token expired, attempting refresh...');
+      final response = await _dioForRefresh.post('/auth/refresh-token', data: {
+        'refreshToken': _refreshToken,
       });
 
-      final newToken = response.data['token'];
-      if (newToken != null) {
-        _token = newToken;
-        log('Auto re-login successful');
-        _onTokenRefreshed?.call(newToken, response.data);
-        return true;
+      final data = response.data;
+      final newAccessToken = data['token'] as String?;
+      final newRefreshToken = data['refreshToken'] as String?;
+
+      if (newAccessToken == null || newRefreshToken == null) {
+        throw Exception('Invalid refresh response: missing tokens');
       }
 
-      log('Auto re-login failed: no token in response');
-      _onReLoginFailed?.call();
-      return false;
+      _token = newAccessToken;
+      _refreshToken = newRefreshToken;
+      log('Token refresh successful');
+
+      _onTokensRefreshed?.call(newAccessToken, newRefreshToken);
+
+      // Retry the original failed request
+      try {
+        error.requestOptions.headers['Authorization'] = 'Bearer $_token';
+        final retryResponse = await _dio.fetch(error.requestOptions);
+        handler.resolve(retryResponse);
+      } on DioException catch (e) {
+        handler.next(e);
+      }
+
+      // Complete all queued requests
+      while (_pendingRequests.isNotEmpty) {
+        final pending = _pendingRequests.removeFirst();
+        try {
+          pending.error.requestOptions.headers['Authorization'] =
+              'Bearer $_token';
+          final response = await _dio.fetch(pending.error.requestOptions);
+          pending.handler.resolve(response);
+        } on DioException catch (e) {
+          pending.handler.next(e);
+        }
+        pending.completer.complete();
+      }
     } on DioException catch (e) {
-      log('Auto re-login failed: ${e.response?.statusCode} ${e.response?.data}');
-      _onReLoginFailed?.call();
-      return false;
+      log('Token refresh failed: ${e.response?.statusCode} ${e.response?.data}');
+      _token = null;
+      _refreshToken = null;
+      _onSessionExpired?.call();
+
+      // Fail all queued requests
+      while (_pendingRequests.isNotEmpty) {
+        final pending = _pendingRequests.removeFirst();
+        pending.handler.next(pending.error);
+        pending.completer.complete();
+      }
+      return handler.next(error);
     } catch (e) {
-      log('Auto re-login failed: $e');
-      _onReLoginFailed?.call();
-      return false;
+      log('Token refresh failed: $e');
+      _token = null;
+      _refreshToken = null;
+      _onSessionExpired?.call();
+
+      // Fail all queued requests
+      while (_pendingRequests.isNotEmpty) {
+        final pending = _pendingRequests.removeFirst();
+        pending.handler.next(pending.error);
+        pending.completer.complete();
+      }
+      return handler.next(error);
     } finally {
       _isRefreshing = false;
     }
   }
+}
+
+class _PendingRequest {
+  final DioException error;
+  final ErrorInterceptorHandler handler;
+  final Completer<void> completer;
+
+  _PendingRequest(this.error, this.handler, this.completer);
 }

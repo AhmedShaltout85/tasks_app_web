@@ -16,6 +16,11 @@ class ApiNetworkUserReposImpl implements ApiNetworkUserRepos {
 
   void clearToken() => _client.clearToken();
 
+  void setRefreshToken(String refreshToken) =>
+      _client.setRefreshToken(refreshToken);
+
+  void clearRefreshToken() => _client.clearRefreshToken();
+
   @override
   Future<Map<String, dynamic>> signUp({
     required String displayName,
@@ -44,7 +49,8 @@ class ApiNetworkUserReposImpl implements ApiNetworkUserRepos {
       'password': password,
     });
     if (response.data['token'] != null) {
-      log(response.data['token']);
+      log("TOKEN ===>" + response.data['token']);
+      log("REFRESH_TOKEN ===>" + response.data['refreshToken']);
 
       _client.setToken(response.data['token']);
     }
@@ -52,9 +58,10 @@ class ApiNetworkUserReposImpl implements ApiNetworkUserRepos {
   }
 
   @override
-  Future<void> signOut() async {
-    await _client.dio.post('/auth/signout');
-    _client.clearToken();
+  Future<void> signOut({String? refreshToken}) async {
+    await _client.dio.post('/auth/signout', data: {
+      if (refreshToken != null) 'refreshToken': refreshToken,
+    });
   }
 
   @override
@@ -97,7 +104,6 @@ class ApiNetworkUserReposImpl implements ApiNetworkUserRepos {
         .toList();
   }
 
-
   @override
   Future<void> setUserEnabled(int id, bool enabled) async {
     await _client.dio.put('/users/$id/enable?enabled=$enabled');
@@ -118,6 +124,16 @@ class ApiNetworkUserReposImpl implements ApiNetworkUserRepos {
       'currentPassword': currentPassword,
       'newPassword': newPassword,
     });
+  }
+
+  @override
+  Future<Map<String, dynamic>> refreshToken(
+      {required String refreshToken}) async {
+    final response =
+        await _client.dioForRefresh.post('/auth/refresh-token', data: {
+      'refreshToken': refreshToken,
+    });
+    return response.data;
   }
 
   @override
