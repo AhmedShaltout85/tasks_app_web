@@ -137,6 +137,21 @@ Future<void> generatePDF({
             textDirection: pw.TextDirection.rtl,
             child: pw.Table(
               border: pw.TableBorder.all(color: PdfColors.grey400),
+              columnWidths: {
+                0: pw.FixedColumnWidth(30), // التاريخ
+                1: pw.FixedColumnWidth(45), // اسم المهمة
+                2: pw.FixedColumnWidth(35), // التطبيق
+                3: pw.FixedColumnWidth(35), // مخصصة لـ
+                4: pw.FixedColumnWidth(35), // مخصصة من
+                5: pw.FixedColumnWidth(35), // مكان الزيارة
+                6: pw.FixedColumnWidth(28), // الحالة
+                7: pw.FixedColumnWidth(30), // نوع الشكوى
+                8: pw.FixedColumnWidth(28), // الأولوية
+                9: pw.FixedColumnWidth(28), // نوع العمل
+                10: pw.FixedColumnWidth(35), // المشاركين
+                11: pw.FixedColumnWidth(30), // تاريخ الانتهاء
+                12: pw.FlexColumnWidth(1), // ملاحظات (flexible, wraps)
+              },
               children: [
                 pw.TableRow(
                   decoration: const pw.BoxDecoration(color: PdfColors.blue100),
