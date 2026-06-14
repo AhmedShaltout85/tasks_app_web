@@ -52,7 +52,11 @@ class _TaskScreenState extends State<TaskScreen> {
   Future<void> _fetchData() async {
     if (!mounted) return;
     // Already checked in initState callback
-    await _fetchDataImpl();
+    try {
+      await _fetchDataImpl();
+    } catch (e) {
+      log(e.toString());
+    }
   }
 
   Future<void> _fetchDataImpl() async {
@@ -133,7 +137,7 @@ class _TaskScreenState extends State<TaskScreen> {
     final newTask = DailyTaskModel(
       taskTitle: values['اسم المهمة'] ?? '',
       taskStatus: true,
-      appName: values['التطبيق/الجهاز'] ?? '',
+      appName: values['المنطومة'] ?? '',
       visitPlace: values['المكان الرئيسى'] ?? '',
       subPlace: values['مكان فرعى'] ?? '',
       assignedTo: assignedTo,
@@ -455,7 +459,7 @@ class _TaskScreenState extends State<TaskScreen> {
                                         isDark ? Colors.white : Colors.black87,
                                   ),
                                   decoration: InputDecoration(
-                                    labelText: 'التطبيق/الجهاز',
+                                    labelText: 'المنظومة',
                                     labelStyle: TextStyle(
                                       fontFamily: 'Cairo',
                                       color: isDark

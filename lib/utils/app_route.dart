@@ -14,4 +14,5 @@ class AppRoute {
   static const String preventiveItemRouteName = '/preventive-item-screen';
   static const String preventiveMaintenanceRouteName =
       '/preventive-maintenance-screen';
+  static const String complaintsRouteName = '/complaints-screen';
 }

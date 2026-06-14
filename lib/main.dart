@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:responsive_framework/responsive_framework.dart';
+import 'package:tasks_app/controller/complaint_provider.dart';
 
 import 'package:tasks_app/controller/local_control/cache_helper.dart';
 import 'package:tasks_app/controller/preventive_provider.dart';
@@ -11,6 +12,7 @@ import 'package:tasks_app/controller/daily_task_provider.dart';
 import 'package:tasks_app/controller/about_app_provider.dart';
 import 'package:tasks_app/screens/about_app/manage_about_app_screen.dart';
 import 'package:tasks_app/screens/auth/auth_wrapper.dart';
+import 'package:tasks_app/screens/complaints/manage_complmaints_screen.dart';
 import 'package:tasks_app/screens/login/login_screen.dart';
 import 'package:tasks_app/screens/places/manage_place_screen.dart';
 import 'package:tasks_app/screens/preventive/preventive_item_screen.dart';
@@ -39,6 +41,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => AboutAppProvider()),
         ChangeNotifierProvider(create: (_) => PreventiveProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => ComplaintProvider()),
       ],
       child: MyApp(),
     ),
@@ -81,6 +84,8 @@ class MyApp extends StatelessWidget {
                     const PreventiveItemScreen(),
                 AppRoute.preventiveMaintenanceRouteName: (context) =>
                     const ManagePreventiveMaintenanceScreen(),
+                AppRoute.complaintsRouteName: (context) =>
+                    const ManageComplaintsScreen(),
               },
             ),
             breakpoints: [

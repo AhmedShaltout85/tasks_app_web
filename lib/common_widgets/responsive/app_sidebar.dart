@@ -4,6 +4,7 @@ import 'package:tasks_app/common_widgets/responsive/drawer_items.dart';
 import 'package:tasks_app/controller/theme_provider.dart';
 import 'package:tasks_app/controller/user_provider.dart';
 import 'package:tasks_app/screens/about_app/manage_about_app_screen.dart';
+import 'package:tasks_app/screens/complaints/manage_complmaints_screen.dart';
 import 'package:tasks_app/screens/places/manage_place_screen.dart';
 import 'package:tasks_app/screens/preventive/preventive_item_screen.dart';
 import 'package:tasks_app/screens/preventive/manage_preventive_maintenance_screen.dart';
@@ -67,6 +68,12 @@ List<DrawerItem> _buildAdminItems(BuildContext context, int selectedIndex) {
       icon: Icons.settings_rounded,
       title: 'الضبط والاعدادات',
       onTap: () => _navigateTo(context, const SettingsScreen(), 7),
+    ),
+    DrawerItem(
+      index: 8,
+      icon: Icons.error_outline_sharp,
+      title: 'شكاوى الموظفين',
+      onTap: () => _navigateTo(context, const ManageComplaintsScreen(), 8),
     ),
   ];
 }
