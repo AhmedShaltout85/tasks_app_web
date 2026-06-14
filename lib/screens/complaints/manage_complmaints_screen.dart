@@ -352,11 +352,12 @@ class _ManageComplaintsScreenState extends State<ManageComplaintsScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const CustomText(
+            CustomText(
               text: 'إنشاء مهمة من الشكوى',
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: AppColors.blackColor87,
+              color: AppColors.primaryColor,
+              textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
 
@@ -458,6 +459,10 @@ class _ManageComplaintsScreenState extends State<ManageComplaintsScreen> {
                                 final isSelected = selectedCoOperators
                                     .contains(user.displayName);
                                 return FilterChip(
+                                  labelPadding:
+                                      const EdgeInsets.symmetric(horizontal: 6),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 6),
                                   label: Text(user.displayName),
                                   selected: isSelected,
                                   onSelected: (selected) {

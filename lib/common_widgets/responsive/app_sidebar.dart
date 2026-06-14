@@ -71,7 +71,7 @@ List<DrawerItem> _buildAdminItems(BuildContext context, int selectedIndex) {
     ),
     DrawerItem(
       index: 8,
-      icon: Icons.error_outline_sharp,
+      icon: Icons.report_problem_outlined,
       title: 'شكاوى الموظفين',
       onTap: () => _navigateTo(context, const ManageComplaintsScreen(), 8),
     ),
