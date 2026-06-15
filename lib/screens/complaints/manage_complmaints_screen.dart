@@ -291,6 +291,9 @@ class _ManageComplaintsScreenState extends State<ManageComplaintsScreen> {
     String selectedPriority = 'MEDIUM';
     List<String> selectedCoOperators = [];
     DateTime expectedDate = DateTime.now().add(const Duration(days: 1));
+    final taskNoteController = TextEditingController(
+      text: 'سوفتوير - ${complaint.empName} - ${complaint.empMobile}',
+    );
 
     showModalBottomSheet(
       context: context,
@@ -305,6 +308,7 @@ class _ManageComplaintsScreenState extends State<ManageComplaintsScreen> {
             selectedPriority: selectedPriority,
             selectedCoOperators: selectedCoOperators,
             expectedDate: expectedDate,
+            taskNoteController: taskNoteController,
             onAssignedToChanged: (value) =>
                 setModalState(() => selectedAssignedTo = value),
             onPriorityChanged: (value) =>
@@ -319,6 +323,7 @@ class _ManageComplaintsScreenState extends State<ManageComplaintsScreen> {
               priority: selectedPriority,
               coOperators: selectedCoOperators,
               expectedDate: expectedDate,
+              taskNote: taskNoteController.text,
             ),
           );
         },
@@ -334,6 +339,7 @@ class _ManageComplaintsScreenState extends State<ManageComplaintsScreen> {
     required String selectedPriority,
     required List<String> selectedCoOperators,
     required DateTime expectedDate,
+    required TextEditingController taskNoteController,
     required ValueChanged<String?> onAssignedToChanged,
     required ValueChanged<String?> onPriorityChanged,
     required ValueChanged<List<String>> onCoOperatorsChanged,
@@ -373,8 +379,17 @@ class _ManageComplaintsScreenState extends State<ManageComplaintsScreen> {
             _buildReadOnlyField('المكان الفرعي',
                 complaint.subPlace != 'none' ? complaint.subPlace : 'لا يوجد'),
             const SizedBox(height: 8),
-            _buildReadOnlyField('ملاحظات',
-                '${complaint.empMobile} - ${complaint.empName} - سوفتير'),
+            TextField(
+              controller: taskNoteController,
+              decoration: InputDecoration(
+                labelText: 'ملاحظات',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                prefixIcon: const Icon(Icons.note),
+              ),
+              maxLines: 2,
+            ),
             const SizedBox(height: 16),
 
             // Assigned To dropdown (USER role in department)
@@ -459,10 +474,6 @@ class _ManageComplaintsScreenState extends State<ManageComplaintsScreen> {
                                 final isSelected = selectedCoOperators
                                     .contains(user.displayName);
                                 return FilterChip(
-                                  labelPadding:
-                                      const EdgeInsets.symmetric(horizontal: 6),
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 12, vertical: 6),
                                   label: Text(user.displayName),
                                   selected: isSelected,
                                   onSelected: (selected) {
@@ -477,6 +488,7 @@ class _ManageComplaintsScreenState extends State<ManageComplaintsScreen> {
                                   },
                                   selectedColor:
                                       AppColors.primaryColor.withOpacity(0.2),
+                                  visualDensity: VisualDensity.compact,
                                 );
                               }).toList(),
                             ),
@@ -573,6 +585,7 @@ class _ManageComplaintsScreenState extends State<ManageComplaintsScreen> {
     required String priority,
     required List<String> coOperators,
     required DateTime expectedDate,
+    required String taskNote,
   }) async {
     if (assignedTo == null || assignedTo.isEmpty) {
       ReusableToast.showToast(
@@ -597,7 +610,7 @@ class _ManageComplaintsScreenState extends State<ManageComplaintsScreen> {
       coOperator: coOperators,
       expectedCompletionDate: expectedDate,
       taskPriority: priority,
-      taskNote: '${complaint.empMobile} - ${complaint.empName} - سوفتير',
+      taskNote: taskNote,
       isRemote: false,
       createdAt: DateTime.now(),
     );
@@ -695,8 +708,9 @@ class _ManageComplaintsScreenState extends State<ManageComplaintsScreen> {
           const CustomText(
             text: 'تصفية الشكاوى',
             fontSize: 18,
+            textAlign: TextAlign.center,
             fontWeight: FontWeight.bold,
-            color: AppColors.blackColor87,
+            color: AppColors.primaryColor,
           ),
           const SizedBox(height: 16),
           CustomDropdown(

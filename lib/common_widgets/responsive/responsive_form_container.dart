@@ -25,24 +25,15 @@ void showResponsiveForm({
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 if (showHeader) ...[
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          title,
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            fontFamily: 'Cairo',
-                            color: AppColors.primaryColor,
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () => Navigator.pop(dialogContext),
-                      ),
-                    ],
+                  Text(
+                    title,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'Cairo',
+                      color: AppColors.primaryColor,
+                    ),
                   ),
                   const SizedBox(height: 16),
                 ],
@@ -79,13 +70,16 @@ void showResponsiveForm({
                 ),
               ),
               if (showHeader) ...[
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'Cairo',
-                    color: AppColors.primaryColor,
+                Center(
+                  child: Text(
+                    title,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'Cairo',
+                      color: AppColors.primaryColor,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),

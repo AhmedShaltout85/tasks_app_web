@@ -259,7 +259,17 @@ class _TaskScreenState extends State<UserTaskScreen> {
       appBar: AppBar(
         leading: const SizedBox.shrink(),
         backgroundColor: Colors.transparent,
+        centerTitle: true,
+        title: const Text(
+          'إضافة مهمة جديدة',
+          style: TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.bold),
+        ),
         actions: [
+          IconButton(
+            tooltip: 'تحديث',
+            icon: Icon(Icons.refresh, color: colorScheme.primary),
+            onPressed: _fetchData,
+          ),
           Stack(
             children: [
               IconButton(
@@ -573,7 +583,7 @@ class _TaskScreenState extends State<UserTaskScreen> {
                                         isDark ? Colors.white : Colors.black87,
                                   ),
                                   decoration: InputDecoration(
-                                    labelText: 'التطبيق/الجهاز',
+                                    labelText: 'المنظومة',
                                     labelStyle: TextStyle(
                                       fontFamily: 'Cairo',
                                       color: isDark
@@ -926,19 +936,18 @@ class _TaskScreenState extends State<UserTaskScreen> {
           SnackBar(
             content: Center(
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
                     task.taskStatus ? Icons.check_circle : Icons.info,
                     color: Colors.white,
                   ),
                   const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      task.taskStatus ? 'تم انهاء المهمة' : 'تم تفعيل المهمة',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w500,
-                        fontFamily: 'Cairo',
-                      ),
+                  Text(
+                    task.taskStatus ? 'تم انهاء المهمة' : 'تم تفعيل المهمة',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w500,
+                      fontFamily: 'Cairo',
                     ),
                   ),
                 ],
@@ -1226,8 +1235,8 @@ class _AddTaskFormContentState extends State<_AddTaskFormContent> {
   @override
   void initState() {
     super.initState();
-    _selectedAppName = 'اختر';
-    _selectedPlaceName = 'اختر';
+    _selectedAppName = null;
+    _selectedPlaceName = null;
     _selectedCoOperators = [];
   }
 
@@ -1251,6 +1260,7 @@ class _AddTaskFormContentState extends State<_AddTaskFormContent> {
         children: [
           TextFormField(
             controller: _taskTitleController,
+            maxLines: 2,
             style: TextStyle(
               fontFamily: 'Cairo',
               color: isDark ? Colors.white : Colors.black87,

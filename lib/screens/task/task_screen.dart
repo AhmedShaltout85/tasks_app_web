@@ -137,7 +137,7 @@ class _TaskScreenState extends State<TaskScreen> {
     final newTask = DailyTaskModel(
       taskTitle: values['اسم المهمة'] ?? '',
       taskStatus: true,
-      appName: values['المنطومة'] ?? '',
+      appName: values['المنظومة'] ?? '',
       visitPlace: values['المكان الرئيسى'] ?? '',
       subPlace: values['مكان فرعى'] ?? '',
       assignedTo: assignedTo,
@@ -733,6 +733,7 @@ class _TaskScreenState extends State<TaskScreen> {
             key: 'اسم المهمة',
             label: 'اسم المهم',
             hint: 'ادخل اسم المهمة',
+            maxLines: 2,
             icon: Icons.title,
             validator: (value) {
               if (value == null || value.isEmpty) {
@@ -742,7 +743,7 @@ class _TaskScreenState extends State<TaskScreen> {
             },
           ),
           DropdownFieldConfig(
-            key: 'التطبيق/الجهاز',
+            key: 'المنظومة',
             label: 'أختر التطبيق /الجهاز',
             icon: Icons.apps,
             items: appNames,

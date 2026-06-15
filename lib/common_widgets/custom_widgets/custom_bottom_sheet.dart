@@ -308,10 +308,11 @@ class _CustomBottomSheetState extends State<CustomBottomSheet> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
                     widget.title,
+                    textAlign: TextAlign.center,
                     style: TextStyle(
                       fontFamily: 'Cairo',
                       fontSize: 20,
@@ -319,13 +320,13 @@ class _CustomBottomSheetState extends State<CustomBottomSheet> {
                       color: colorScheme.primary,
                     ),
                   ),
-                  IconButton(
-                    icon: Icon(
-                      Icons.close,
-                      color: isDark ? Colors.grey[400] : Colors.grey[700],
-                    ),
-                    onPressed: _handleCancel,
-                  ),
+                  // IconButton(
+                  //   icon: Icon(
+                  //     Icons.close,
+                  //     color: isDark ? Colors.grey[400] : Colors.grey[700],
+                  //   ),
+                  //   onPressed: _handleCancel,
+                  // ),
                 ],
               ),
             ),
