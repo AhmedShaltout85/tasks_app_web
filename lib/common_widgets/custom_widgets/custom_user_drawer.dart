@@ -219,7 +219,7 @@ class _CustomDrawerState extends State<CustomUserDrawer>
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(dialogContext);
-              _userProvider.clearUserData();
+              await _userProvider.signOut();
               ReusableToast.showToast(
                 message: 'تم تسجيل الخروج بنجاح',
                 bgColor: Colors.green,

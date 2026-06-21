@@ -199,7 +199,7 @@ void _showLogoutDialog(
         ElevatedButton(
           onPressed: () async {
             Navigator.pop(dialogContext);
-            userProvider.clearUserData();
+            await userProvider.signOut();
             Navigator.of(context).pushReplacementNamed(AppRoute.loginRouteName);
           },
           style: ElevatedButton.styleFrom(

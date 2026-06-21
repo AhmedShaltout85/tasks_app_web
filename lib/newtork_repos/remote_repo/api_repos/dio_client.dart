@@ -6,7 +6,7 @@ import 'package:dio/dio.dart';
 
 typedef OnTokensRefreshed = Future<void> Function(
     String newAccessToken, String newRefreshToken);
-typedef OnSessionExpired = void Function();
+typedef OnSessionExpired = Future<void> Function();
 
 class DioClient {
   // static const String _baseUrl = 'http://localhost:9999/tasks-api/api'; //LOCALHOST(LOCAL_SERVER)
@@ -111,7 +111,7 @@ class DioClient {
     }
 
     if (_refreshToken == null) {
-      _onSessionExpired?.call();
+      await _onSessionExpired?.call();
       return handler.next(error);
     }
 
@@ -134,7 +134,7 @@ class DioClient {
       _refreshToken = newRefreshToken;
       log('Token refresh successful');
 
-      _onTokensRefreshed?.call(newAccessToken, newRefreshToken);
+      await _onTokensRefreshed?.call(newAccessToken, newRefreshToken);
 
       // Retry the original failed request
       try {
@@ -159,10 +159,10 @@ class DioClient {
         pending.completer.complete();
       }
     } on DioException catch (e) {
-      log('Token refresh failed: ${e.response?.statusCode} ${e.response?.data}');
+      log('Token refresh failed - DioException: status=${e.response?.statusCode}, data=${e.response?.data}');
       _token = null;
       _refreshToken = null;
-      _onSessionExpired?.call();
+      await _onSessionExpired?.call();
 
       // Fail all queued requests
       while (_pendingRequests.isNotEmpty) {
@@ -172,10 +172,10 @@ class DioClient {
       }
       return handler.next(error);
     } catch (e) {
-      log('Token refresh failed: $e');
+      log('Token refresh failed - Unexpected error: $e');
       _token = null;
       _refreshToken = null;
-      _onSessionExpired?.call();
+      await _onSessionExpired?.call();
 
       // Fail all queued requests
       while (_pendingRequests.isNotEmpty) {

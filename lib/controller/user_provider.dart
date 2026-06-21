@@ -31,8 +31,8 @@ class UserProvider with ChangeNotifier {
       onTokensRefreshed: (newAccessToken, newRefreshToken) async {
         await updateTokens(newAccessToken, newRefreshToken);
       },
-      onSessionExpired: () {
-        clearUserData();
+      onSessionExpired: () async {
+        await clearUserData();
       },
     );
   }
@@ -125,7 +125,7 @@ class UserProvider with ChangeNotifier {
   String? get token => _token;
   String? get refreshToken => _refreshToken;
 
-  void clearUserData() async {
+  Future<void> clearUserData() async {
     _token = null;
     _refreshToken = null;
     _currentUser = null;
@@ -210,6 +210,8 @@ class UserProvider with ChangeNotifier {
         _refreshToken = response['refreshToken'];
         _api.setRefreshToken(_refreshToken!);
         await _saveRefreshTokenToCache(_refreshToken!);
+      } else {
+        log('WARNING: Backend did not return a refreshToken. Auto-refresh will not work.');
       }
 
       await _saveTokenToCache(_token!);

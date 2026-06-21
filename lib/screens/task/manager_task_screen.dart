@@ -400,8 +400,8 @@ class _TaskScreenState extends State<ManagerTaskScreen> {
         DrawerLogoutSection(
           isDark: isDark,
           colorScheme: colorScheme,
-          onLogout: () {
-            userProvider.clearUserData();
+          onLogout: () async {
+            await userProvider.signOut();
             Navigator.of(context).pushReplacementNamed(AppRoute.loginRouteName);
           },
         ),
