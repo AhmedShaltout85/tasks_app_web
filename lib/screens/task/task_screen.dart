@@ -73,6 +73,7 @@ class _TaskScreenState extends State<TaskScreen> {
         );
         return;
       }
+      if (!mounted) return;
       final userProvider = context.read<UserProvider>();
       final department = userProvider.currentUser?.department;
       log('TaskScreen: User department: $department');

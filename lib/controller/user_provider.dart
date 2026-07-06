@@ -6,6 +6,7 @@ import 'package:dio/dio.dart';
 import '../models/user_model.dart';
 import '../newtork_repos/remote_repo/api_repos/api_network_user_repos_impl.dart';
 import '../newtork_repos/remote_repo/api_repos/dio_client.dart';
+import '../utils/jwt_helper.dart';
 import 'local_control/cache_helper.dart';
 
 class UserProvider with ChangeNotifier {
@@ -19,6 +20,7 @@ class UserProvider with ChangeNotifier {
   String? _error;
   String? _token;
   String? _refreshToken;
+  DateTime? _tokenExpiry;
 
   UserProvider() {
     _setupCallbacks();
@@ -28,8 +30,8 @@ class UserProvider with ChangeNotifier {
   void _setupCallbacks() {
     final dioClient = DioClient();
     dioClient.setCallbacks(
-      onTokensRefreshed: (newAccessToken, newRefreshToken) async {
-        await updateTokens(newAccessToken, newRefreshToken);
+      onTokensRefreshed: (newAccessToken, newRefreshToken, newExpiry) async {
+        await updateTokens(newAccessToken, newRefreshToken, newExpiry);
       },
       onSessionExpired: () async {
         await clearUserData();
@@ -61,31 +63,95 @@ class UserProvider with ChangeNotifier {
         log('Refresh token loaded from cache');
       }
 
-      final savedUserData = CacheHelper.getData(key: 'current_user');
-      if (savedUserData != null) {
-        try {
-          final userMap = jsonDecode(savedUserData as String);
-          _currentUser = UserModel.fromJson(userMap);
-          log('User data restored from cache: ${_currentUser?.displayName}, role: ${_currentUser?.role}');
-        } catch (e) {
-          log('Failed to parse cached user data: $e');
-          _token = null;
-          _refreshToken = null;
-          _api.clearToken();
-          _api.clearRefreshToken();
-          await _clearTokenFromCache();
+      final savedExpiry = CacheHelper.getData(key: 'token_expiry');
+      if (savedExpiry != null) {
+        _tokenExpiry = DateTime.fromMillisecondsSinceEpoch(savedExpiry as int);
+        if (_tokenExpiry!.isBefore(DateTime.now())) {
+          log('Access token expired, attempting refresh on startup...');
+          if (_refreshToken != null) {
+            final refreshed = await _attemptRefreshOnStartup();
+            if (refreshed) {
+              log('Token refreshed successfully on startup');
+              await _restoreCachedUser();
+              return;
+            }
+            log('Token refresh failed on startup, clearing all tokens');
+          } else {
+            log('No refresh token available, clearing tokens');
+          }
+          await _clearAuthState();
+          return;
         }
-      } else {
-        _token = null;
-        _refreshToken = null;
-        _api.clearToken();
-        _api.clearRefreshToken();
-        await _clearTokenFromCache();
-        log('No cached user data found, cleared token');
+        log('Token expiry restored: $_tokenExpiry');
       }
+
+      await _restoreCachedUser();
     } else {
       log('No cached token found');
     }
+  }
+
+  Future<void> _restoreCachedUser() async {
+    final savedUserData = CacheHelper.getData(key: 'current_user');
+    if (savedUserData != null) {
+      try {
+        final userMap = jsonDecode(savedUserData as String);
+        _currentUser = UserModel.fromJson(userMap);
+        log('User data restored from cache: ${_currentUser?.displayName}, role: ${_currentUser?.role}');
+        DioClient().scheduleTokenRefresh(_token!);
+      } catch (e) {
+        log('Failed to parse cached user data: $e');
+        await _clearAuthState();
+      }
+    } else {
+      log('No cached user data found, clearing tokens');
+      await _clearAuthState();
+    }
+  }
+
+  Future<bool> _attemptRefreshOnStartup() async {
+    if (_refreshToken == null) return false;
+    try {
+      final response = await _api.refreshToken(refreshToken: _refreshToken!);
+
+      final newAccessToken = response['token'] as String?;
+      final newRefreshToken = response['refreshToken'] as String?;
+
+      if (newAccessToken == null) return false;
+
+      _token = newAccessToken;
+      _api.setToken(newAccessToken);
+      await _saveTokenToCache(newAccessToken);
+
+      if (newRefreshToken != null) {
+        _refreshToken = newRefreshToken;
+        _api.setRefreshToken(newRefreshToken);
+        await _saveRefreshTokenToCache(newRefreshToken);
+      }
+
+      final exp = JwtHelper.extractExpiry(newAccessToken);
+      if (exp != null) {
+        _tokenExpiry = DateTime.fromMillisecondsSinceEpoch(exp * 1000);
+        await CacheHelper.saveData(
+            key: 'token_expiry', value: _tokenExpiry!.millisecondsSinceEpoch);
+        DioClient().scheduleTokenRefresh(newAccessToken);
+      }
+
+      return true;
+    } catch (e) {
+      log('Refresh on startup failed: $e');
+      return false;
+    }
+  }
+
+  Future<void> _clearAuthState() async {
+    _token = null;
+    _refreshToken = null;
+    _tokenExpiry = null;
+    _currentUser = null;
+    _api.clearToken();
+    _api.clearRefreshToken();
+    await _clearTokenFromCache();
   }
 
   Future<void> _saveTokenToCache(String token) async {
@@ -104,6 +170,7 @@ class UserProvider with ChangeNotifier {
   Future<void> _clearTokenFromCache() async {
     await CacheHelper.removeData(key: 'auth_token');
     await CacheHelper.removeData(key: 'refresh_token');
+    await CacheHelper.removeData(key: 'token_expiry');
     await CacheHelper.removeData(key: 'current_user');
   }
 
@@ -124,10 +191,12 @@ class UserProvider with ChangeNotifier {
   String? get error => _error;
   String? get token => _token;
   String? get refreshToken => _refreshToken;
+  DateTime? get tokenExpiry => _tokenExpiry;
 
   Future<void> clearUserData() async {
     _token = null;
     _refreshToken = null;
+    _tokenExpiry = null;
     _currentUser = null;
     _users = [];
     _error = null;
@@ -137,19 +206,20 @@ class UserProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> updateTokens(
-      String newAccessToken, String newRefreshToken) async {
+  Future<void> updateTokens(String newAccessToken, String newRefreshToken,
+      DateTime? newExpiry) async {
     _token = newAccessToken;
     _refreshToken = newRefreshToken;
+    _tokenExpiry = newExpiry;
     _api.setToken(newAccessToken);
     _api.setRefreshToken(newRefreshToken);
     await _saveTokenToCache(newAccessToken);
     await _saveRefreshTokenToCache(newRefreshToken);
+    if (newExpiry != null) {
+      await CacheHelper.saveData(
+          key: 'token_expiry', value: newExpiry.millisecondsSinceEpoch);
+    }
     if (_currentUser != null) {
-      _currentUser = _currentUser!.copyWith(
-        token: newAccessToken,
-        refreshToken: newRefreshToken,
-      );
       await _saveUserToCache(_currentUser!);
     }
     notifyListeners();
@@ -166,21 +236,13 @@ class UserProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await _api.signUp(
+      await _api.signUp(
         displayName: displayName,
         username: username,
         password: password,
         role: role,
         department: department,
       );
-      if (response['token'] != null) {
-        _token = response['token'];
-        _api.setToken(_token!);
-      }
-      if (response['refreshToken'] != null) {
-        _refreshToken = response['refreshToken'];
-        _api.setRefreshToken(_refreshToken!);
-      }
       _error = null;
     } catch (e) {
       _error = e.toString();
@@ -215,6 +277,16 @@ class UserProvider with ChangeNotifier {
       }
 
       await _saveTokenToCache(_token!);
+
+      final exp = JwtHelper.extractExpiry(_token!);
+      if (exp != null) {
+        _tokenExpiry = DateTime.fromMillisecondsSinceEpoch(exp * 1000);
+        await CacheHelper.saveData(
+            key: 'token_expiry', value: _tokenExpiry!.millisecondsSinceEpoch);
+        log('Token expiry extracted: $_tokenExpiry');
+        DioClient().scheduleTokenRefresh(_token!);
+      }
+
       _currentUser = UserModel.fromJson(response);
       await _saveUserToCache(_currentUser!);
       log('Current user set: ${_currentUser?.displayName}, role: ${_currentUser?.role}, department: ${_currentUser?.department}');
@@ -246,6 +318,7 @@ class UserProvider with ChangeNotifier {
     }
     _token = null;
     _refreshToken = null;
+    _tokenExpiry = null;
     _currentUser = null;
     _users = [];
     _error = null;

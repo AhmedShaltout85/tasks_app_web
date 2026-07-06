@@ -68,6 +68,7 @@ class _TaskScreenState extends State<UserTaskScreen> {
         );
         return;
       }
+      if (!mounted) return;
       final userProvider = context.read<UserProvider>();
       final username = userProvider.currentUser?.username;
       final department = userProvider.currentUser?.department;
@@ -259,11 +260,11 @@ class _TaskScreenState extends State<UserTaskScreen> {
       appBar: AppBar(
         leading: const SizedBox.shrink(),
         backgroundColor: Colors.transparent,
-        centerTitle: true,
-        title: const Text(
-          'إضافة مهمة جديدة',
-          style: TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.bold),
-        ),
+        // centerTitle: true,
+        // title: const Text(
+        //   'إضافة مهمة جديدة',
+        //   style: TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.bold),
+        // ),
         actions: [
           IconButton(
             tooltip: 'تحديث',

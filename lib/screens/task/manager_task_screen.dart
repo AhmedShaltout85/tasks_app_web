@@ -77,6 +77,7 @@ class _TaskScreenState extends State<ManagerTaskScreen> {
         );
         return;
       }
+      if (!mounted) return;
 
       // Step 1: Fetch tasks
       log('Step1: Fetching tasks...');

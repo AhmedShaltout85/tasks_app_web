@@ -5,8 +5,6 @@ class UserModel {
   final String? password;
   final String? role;
   final String? department;
-  final String? token;
-  final String? refreshToken;
   final bool? enabled;
 
 //Constructor
@@ -17,8 +15,6 @@ class UserModel {
     this.password,
     this.role,
     this.department,
-    this.token,
-    this.refreshToken,
     this.enabled,
   });
 
@@ -31,8 +27,6 @@ class UserModel {
       password: json['password'],
       role: json['role'],
       department: json['department'],
-      token: json['token'],
-      refreshToken: json['refreshToken'],
       enabled: json['enabled'],
     );
   }
@@ -45,8 +39,6 @@ class UserModel {
       'password': password,
       'role': role,
       'department': department,
-      'token': token,
-      'refreshToken': refreshToken,
       'enabled': enabled,
     };
   }
@@ -59,8 +51,6 @@ class UserModel {
     String? password,
     String? role,
     String? department,
-    String? token,
-    String? refreshToken,
     bool? enabled,
   }) {
     return UserModel(
@@ -70,8 +60,6 @@ class UserModel {
       password: password ?? this.password,
       role: role ?? this.role,
       department: department ?? this.department,
-      token: token ?? this.token,
-      refreshToken: refreshToken ?? this.refreshToken,
       enabled: enabled ?? this.enabled,
     );
   }
