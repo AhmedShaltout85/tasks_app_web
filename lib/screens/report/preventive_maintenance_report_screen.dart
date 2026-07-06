@@ -7,6 +7,7 @@ import 'package:responsive_framework/responsive_framework.dart';
 import 'package:tasks_app/common_widgets/responsive/app_sidebar.dart';
 import 'package:tasks_app/common_widgets/responsive/responsive_content_container.dart';
 import 'package:tasks_app/common_widgets/responsive/responsive_scaffold.dart';
+import 'package:tasks_app/common_widgets/responsive/top_nav_bar.dart';
 import 'package:tasks_app/controller/preventive_provider.dart';
 import 'package:tasks_app/controller/about_app_provider.dart';
 import 'package:tasks_app/controller/user_provider.dart';
@@ -120,6 +121,7 @@ class _PreventiveMaintenanceReportScreenState
       return;
     }
 
+    if (!mounted) return;
     final userProvider = context.read<UserProvider>();
     final department = userProvider.currentUser?.department;
 
@@ -129,13 +131,16 @@ class _PreventiveMaintenanceReportScreenState
       await context.read<AboutAppProvider>().fetchAllAboutApps();
     }
 
+    if (!mounted) return;
     await context.read<PlaceNameProvider>().fetchPlaceNameStrings();
 
+    if (!mounted) return;
     final dept = (department == null || department.isEmpty) ? 'IT' : department;
     await context
         .read<PreventiveProvider>()
         .fetchAllPreventiveMaintenanceByDepartment(dept);
 
+    if (!mounted) return;
     final provider = context.read<PreventiveProvider>();
     if (provider.preventiveMaintenance.isEmpty) {
       await context
@@ -779,6 +784,8 @@ class _PreventiveMaintenanceReportScreenState
     final selectedIndex = isAdmin ? 6 : 3;
 
     return ResponsiveScaffold(
+      topNavBar:
+          widget.embedded ? null : buildRoleTopNavBar(context, selectedIndex),
       sidebarContent: widget.embedded
           ? null
           : buildAppSidebar(

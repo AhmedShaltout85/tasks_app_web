@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:tasks_app/common_widgets/responsive/app_sidebar.dart';
 import 'package:tasks_app/common_widgets/responsive/responsive_content_container.dart';
 import 'package:tasks_app/common_widgets/responsive/responsive_scaffold.dart';
+import 'package:tasks_app/common_widgets/responsive/top_nav_bar.dart';
 import 'package:provider/provider.dart';
 import 'package:tasks_app/controller/preventive_provider.dart';
 import 'package:tasks_app/controller/about_app_provider.dart';
@@ -248,6 +249,7 @@ class _ManagePreventiveMaintenanceScreenState
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return ResponsiveScaffold(
+      topNavBar: buildRoleTopNavBar(context, 4),
       sidebarContent: buildAppSidebar(
         context: context,
         selectedIndex: 4,

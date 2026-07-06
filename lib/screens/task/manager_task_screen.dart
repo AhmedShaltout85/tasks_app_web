@@ -7,6 +7,7 @@ import 'package:tasks_app/common_widgets/custom_widgets/custom_reusable_bottom_n
 import 'package:tasks_app/common_widgets/responsive/drawer_items.dart';
 import 'package:tasks_app/common_widgets/responsive/responsive_content_container.dart';
 import 'package:tasks_app/common_widgets/responsive/responsive_scaffold.dart';
+import 'package:tasks_app/common_widgets/responsive/top_nav_bar.dart';
 import 'package:tasks_app/controller/about_app_provider.dart';
 import 'package:tasks_app/controller/daily_task_provider.dart';
 import 'package:tasks_app/controller/place_name_provider.dart';
@@ -239,6 +240,31 @@ class _TaskScreenState extends State<ManagerTaskScreen> {
     final isDesktop = ResponsiveBreakpoints.of(context).isDesktop;
 
     return ResponsiveScaffold(
+      topNavBar: TopNavBar(
+        selectedIndex: _selectedNavIndex,
+        items: [
+          TopNavItem(
+            icon: Icons.home_outlined,
+            title: 'المهام اليومية',
+            onTap: () => setState(() => _selectedNavIndex = 0),
+          ),
+          TopNavItem(
+            icon: Icons.build_circle_outlined,
+            title: 'تقارير وقائية',
+            onTap: () => setState(() => _selectedNavIndex = 1),
+          ),
+          TopNavItem(
+            icon: Icons.assessment_outlined,
+            title: 'التقارير',
+            onTap: () => setState(() => _selectedNavIndex = 2),
+          ),
+          TopNavItem(
+            icon: Icons.settings_outlined,
+            title: 'الضبط',
+            onTap: () => setState(() => _selectedNavIndex = 3),
+          ),
+        ],
+      ),
       appBar: _selectedNavIndex == 0 ? _buildAppBar() : null,
       drawer: null,
       sidebarContent: _buildSidebar(

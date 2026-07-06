@@ -18,6 +18,7 @@ import '../../models/complaint_model.dart';
 import '../../common_widgets/responsive/app_sidebar.dart';
 import '../../common_widgets/responsive/responsive_content_container.dart';
 import '../../common_widgets/responsive/responsive_scaffold.dart';
+import '../../common_widgets/responsive/top_nav_bar.dart';
 
 class ManageComplaintsScreen extends StatefulWidget {
   const ManageComplaintsScreen({super.key});
@@ -63,6 +64,7 @@ class _ManageComplaintsScreenState extends State<ManageComplaintsScreen> {
   @override
   Widget build(BuildContext context) {
     return ResponsiveScaffold(
+      topNavBar: buildRoleTopNavBar(context, _selectedDrawerIndex),
       sidebarContent: buildAppSidebar(
         context: context,
         selectedIndex: _selectedDrawerIndex,
@@ -196,27 +198,36 @@ class _ManageComplaintsScreenState extends State<ManageComplaintsScreen> {
 
   Widget _buildResponsiveGrid(List<ComplaintModel> complaints,
       {double? maxWidth}) {
-    final grid = GridView.builder(
-      padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 0.85,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-      ),
-      itemCount: complaints.length,
-      itemBuilder: (context, index) => _buildCard(complaints[index]),
+    final content = LayoutBuilder(
+      builder: (context, constraints) {
+        final availableWidth = constraints.maxWidth - 32;
+        final cardWidth = (availableWidth - 16) / 2;
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Wrap(
+            spacing: 16,
+            runSpacing: 16,
+            children: complaints
+                .map((complaint) => SizedBox(
+                      width: cardWidth,
+                      child: _buildCard(complaint),
+                    ))
+                .toList(),
+          ),
+        );
+      },
     );
 
     if (maxWidth != null) {
       return Center(
         child: ConstrainedBox(
           constraints: BoxConstraints(maxWidth: maxWidth),
-          child: grid,
+          child: content,
         ),
       );
     }
-    return grid;
+    return content;
   }
 
   Widget _buildCard(ComplaintModel complaint) {

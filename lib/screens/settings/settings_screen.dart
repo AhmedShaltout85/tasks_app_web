@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:tasks_app/common_widgets/responsive/app_sidebar.dart';
 import 'package:tasks_app/common_widgets/responsive/responsive_content_container.dart';
 import 'package:tasks_app/common_widgets/responsive/responsive_scaffold.dart';
+import 'package:tasks_app/common_widgets/responsive/top_nav_bar.dart';
 import 'package:provider/provider.dart';
 import 'package:tasks_app/common_widgets/responsive/responsive_form_container.dart';
 import 'package:tasks_app/common_widgets/resuable_widgets/reusable_toast.dart';
@@ -330,6 +331,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final selectedIndex = isAdmin ? 7 : 5;
 
     return ResponsiveScaffold(
+      topNavBar:
+          widget.embedded ? null : buildRoleTopNavBar(context, selectedIndex),
       sidebarContent: widget.embedded
           ? null
           : buildAppSidebar(

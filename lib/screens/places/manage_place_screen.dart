@@ -5,6 +5,7 @@ import 'package:tasks_app/common_widgets/responsive/empty_state_widget.dart';
 import 'package:tasks_app/common_widgets/responsive/responsive_content_container.dart';
 import 'package:tasks_app/common_widgets/responsive/responsive_form_container.dart';
 import 'package:tasks_app/common_widgets/responsive/responsive_scaffold.dart';
+import 'package:tasks_app/common_widgets/responsive/top_nav_bar.dart';
 import 'package:tasks_app/common_widgets/resuable_widgets/reusable_toast.dart';
 import 'package:tasks_app/controller/place_name_provider.dart';
 import 'package:tasks_app/controller/theme_provider.dart';
@@ -335,6 +336,7 @@ class _ManagePlaceScreenState extends State<ManagePlaceScreen>
     final selectedIndex = isAdmin ? 4 : 1;
 
     return ResponsiveScaffold(
+      topNavBar: buildRoleTopNavBar(context, selectedIndex),
       sidebarContent: buildAppSidebar(
         context: context,
         selectedIndex: selectedIndex,

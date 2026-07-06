@@ -6,6 +6,7 @@ import 'package:responsive_framework/responsive_framework.dart';
 import 'package:tasks_app/common_widgets/responsive/app_sidebar.dart';
 import 'package:tasks_app/common_widgets/responsive/responsive_content_container.dart';
 import 'package:tasks_app/common_widgets/responsive/responsive_scaffold.dart';
+import 'package:tasks_app/common_widgets/responsive/top_nav_bar.dart';
 import 'package:tasks_app/common_widgets/resuable_widgets/reusable_toast.dart';
 import 'package:tasks_app/controller/about_app_provider.dart';
 import 'package:tasks_app/controller/daily_task_provider.dart';
@@ -312,6 +313,8 @@ class _ReportScreenState extends State<ReportScreen>
     final selectedIndex = isAdmin ? 5 : 2;
 
     return ResponsiveScaffold(
+      topNavBar:
+          widget.embedded ? null : buildRoleTopNavBar(context, selectedIndex),
       sidebarContent: widget.embedded
           ? null
           : buildAppSidebar(

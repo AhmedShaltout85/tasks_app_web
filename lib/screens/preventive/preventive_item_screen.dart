@@ -5,6 +5,7 @@ import 'package:tasks_app/common_widgets/responsive/app_sidebar.dart';
 import 'package:tasks_app/common_widgets/responsive/responsive_content_container.dart';
 import 'package:tasks_app/common_widgets/responsive/responsive_form_container.dart';
 import 'package:tasks_app/common_widgets/responsive/responsive_scaffold.dart';
+import 'package:tasks_app/common_widgets/responsive/top_nav_bar.dart';
 import 'package:tasks_app/controller/preventive_provider.dart';
 import 'package:tasks_app/controller/about_app_provider.dart';
 import 'package:tasks_app/controller/user_provider.dart';
@@ -272,6 +273,7 @@ class _PreventiveItemScreenState extends State<PreventiveItemScreen> {
     final selectedIndex = isAdmin ? 2 : 1;
 
     return ResponsiveScaffold(
+      topNavBar: buildRoleTopNavBar(context, selectedIndex),
       sidebarContent: buildAppSidebar(
         context: context,
         selectedIndex: selectedIndex,

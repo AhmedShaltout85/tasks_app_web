@@ -7,6 +7,7 @@ import 'package:tasks_app/common_widgets/responsive/app_sidebar.dart';
 import 'package:tasks_app/common_widgets/responsive/responsive_form_container.dart';
 import 'package:tasks_app/common_widgets/responsive/responsive_content_container.dart';
 import 'package:tasks_app/common_widgets/responsive/responsive_scaffold.dart';
+import 'package:tasks_app/common_widgets/responsive/top_nav_bar.dart';
 import 'package:tasks_app/common_widgets/resuable_widgets/reusable_toast.dart';
 import 'package:tasks_app/controller/about_app_provider.dart';
 import 'package:tasks_app/controller/daily_task_provider.dart';
@@ -251,6 +252,7 @@ class _TaskScreenState extends State<TaskScreen> {
     List<String> uniqueEmployeeNames = ['لاشئ', ...employeeNames.toSet()];
 
     return ResponsiveScaffold(
+      topNavBar: buildAdminTopNavBar(context, _selectedDrawerIndex),
       appBar: AppBar(
         leading: const SizedBox.shrink(),
         backgroundColor: Colors.transparent,

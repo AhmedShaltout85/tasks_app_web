@@ -6,6 +6,7 @@ import 'package:tasks_app/common_widgets/responsive/app_sidebar.dart';
 import 'package:tasks_app/common_widgets/responsive/responsive_form_container.dart';
 import 'package:tasks_app/common_widgets/responsive/responsive_content_container.dart';
 import 'package:tasks_app/common_widgets/responsive/responsive_scaffold.dart';
+import 'package:tasks_app/common_widgets/responsive/top_nav_bar.dart';
 import 'package:tasks_app/common_widgets/resuable_widgets/reusable_toast.dart';
 import 'package:tasks_app/controller/about_app_provider.dart';
 import 'package:tasks_app/controller/daily_task_provider.dart';
@@ -253,6 +254,7 @@ class _TaskScreenState extends State<UserTaskScreen> {
     log('employeeNames: $employeeNames');
 
     return ResponsiveScaffold(
+      topNavBar: buildUserTopNavBar(context, _selectedDrawerIndex),
       sidebarContent: buildAppSidebar(
         context: context,
         selectedIndex: _selectedDrawerIndex,

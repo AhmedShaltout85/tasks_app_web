@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tasks_app/common_widgets/responsive/app_sidebar.dart';
 import 'package:tasks_app/common_widgets/responsive/empty_state_widget.dart';
+import 'package:tasks_app/common_widgets/responsive/top_nav_bar.dart';
 import 'package:tasks_app/common_widgets/responsive/responsive_content_container.dart';
 import 'package:tasks_app/common_widgets/responsive/responsive_form_container.dart';
 import 'package:tasks_app/common_widgets/responsive/responsive_scaffold.dart';
@@ -245,6 +246,7 @@ class _ManageUserScreenState extends State<ManageUserScreen>
     final userColor = isDark ? colorScheme.secondary : const Color(0xFF4CAF50);
 
     return ResponsiveScaffold(
+      topNavBar: buildRoleTopNavBar(context, 1),
       sidebarContent: buildAppSidebar(
         context: context,
         selectedIndex: 1,
