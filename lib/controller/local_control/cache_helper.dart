@@ -35,6 +35,27 @@ class CacheHelper {
     return _prefs!.get(key);
   }
 
+  // Type-safe getters (return null on type mismatch instead of throwing)
+  static String? getString({required String key}) {
+    if (_prefs == null) return null;
+    return _prefs!.getString(key);
+  }
+
+  static int? getInt({required String key}) {
+    if (_prefs == null) return null;
+    return _prefs!.getInt(key);
+  }
+
+  static bool? getBool({required String key}) {
+    if (_prefs == null) return null;
+    return _prefs!.getBool(key);
+  }
+
+  static double? getDouble({required String key}) {
+    if (_prefs == null) return null;
+    return _prefs!.getDouble(key);
+  }
+
   // Remove specific data
   static Future<bool> removeData({required String key}) async {
     if (_prefs == null) await init();

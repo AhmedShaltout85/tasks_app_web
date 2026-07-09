@@ -1,15 +1,17 @@
 import 'dart:convert';
 import 'dart:developer';
-import 'package:flutter/foundation.dart';
+import 'dart:async';
+import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 
 import '../models/user_model.dart';
 import '../newtork_repos/remote_repo/api_repos/api_network_user_repos_impl.dart';
 import '../newtork_repos/remote_repo/api_repos/dio_client.dart';
 import '../utils/jwt_helper.dart';
+import '../utils/web_helper/web_helper.dart';
 import 'local_control/cache_helper.dart';
 
-class UserProvider with ChangeNotifier {
+class UserProvider with ChangeNotifier, WidgetsBindingObserver {
   final ApiNetworkUserReposImpl _api = ApiNetworkUserReposImpl();
 
   UserModel? _currentUser;
@@ -21,10 +23,59 @@ class UserProvider with ChangeNotifier {
   String? _token;
   String? _refreshToken;
   DateTime? _tokenExpiry;
+  StreamSubscription<void>? _focusSubscription;
 
   UserProvider() {
+    WidgetsBinding.instance.addObserver(this);
     _setupCallbacks();
+    _setupWebFocusListener();
     _init();
+  }
+
+  @override
+  void dispose() {
+    _focusSubscription?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkTokenOnResume();
+    }
+  }
+
+  Future<void> _checkTokenOnResume() async {
+    if (_token == null || _tokenExpiry == null) return;
+
+    if (_tokenExpiry!.isBefore(DateTime.now())) {
+      log('Token expired while app was inactive, attempting refresh on resume...');
+      if (_refreshToken != null) {
+        final refreshed = await _attemptRefreshOnStartup();
+        if (refreshed) {
+          log('Token refreshed successfully on resume');
+          await _restoreCachedUser();
+          return;
+        }
+        // Transient failure — DioClient periodic timer will retry
+        log('Refresh on resume failed (transient), periodic timer will retry');
+        DioClient().scheduleTokenRefresh(_token!);
+      } else {
+        log('No refresh token available on resume, clearing session');
+        await clearUserData();
+      }
+    } else {
+      log('Token still valid on resume, rescheduling proactive refresh');
+      DioClient().scheduleTokenRefresh(_token!);
+    }
+  }
+
+  void _setupWebFocusListener() {
+    _focusSubscription = onWindowFocus(() {
+      log('Web window focused — checking token validity');
+      _checkTokenOnResume();
+    });
   }
 
   void _setupCallbacks() {
@@ -49,23 +100,30 @@ class UserProvider with ChangeNotifier {
   }
 
   Future<void> _loadTokenFromCache() async {
-    final savedToken = CacheHelper.getData(key: 'auth_token');
+    final savedToken = CacheHelper.getString(key: 'auth_token');
     log('Checking for cached token: ${savedToken != null ? "found" : "not found"}');
     if (savedToken != null) {
-      _token = savedToken as String;
+      // Validate token structure before using
+      if (JwtHelper.extractExpiry(savedToken) == null) {
+        log('Cached token is malformed, clearing');
+        await clearUserData();
+        return;
+      }
+
+      _token = savedToken;
       _api.setToken(_token!);
       log('Token loaded from cache');
 
-      final savedRefreshToken = CacheHelper.getData(key: 'refresh_token');
+      final savedRefreshToken = CacheHelper.getString(key: 'refresh_token');
       if (savedRefreshToken != null) {
-        _refreshToken = savedRefreshToken as String;
+        _refreshToken = savedRefreshToken;
         _api.setRefreshToken(_refreshToken!);
         log('Refresh token loaded from cache');
       }
 
-      final savedExpiry = CacheHelper.getData(key: 'token_expiry');
+      final savedExpiry = CacheHelper.getInt(key: 'token_expiry');
       if (savedExpiry != null) {
-        _tokenExpiry = DateTime.fromMillisecondsSinceEpoch(savedExpiry as int);
+        _tokenExpiry = DateTime.fromMillisecondsSinceEpoch(savedExpiry);
         if (_tokenExpiry!.isBefore(DateTime.now())) {
           log('Access token expired, attempting refresh on startup...');
           if (_refreshToken != null) {
@@ -79,7 +137,7 @@ class UserProvider with ChangeNotifier {
           } else {
             log('No refresh token available, clearing tokens');
           }
-          await _clearAuthState();
+          await clearUserData();
           return;
         }
         log('Token expiry restored: $_tokenExpiry');
@@ -92,20 +150,20 @@ class UserProvider with ChangeNotifier {
   }
 
   Future<void> _restoreCachedUser() async {
-    final savedUserData = CacheHelper.getData(key: 'current_user');
+    final savedUserData = CacheHelper.getString(key: 'current_user');
     if (savedUserData != null) {
       try {
-        final userMap = jsonDecode(savedUserData as String);
+        final userMap = jsonDecode(savedUserData);
         _currentUser = UserModel.fromJson(userMap);
         log('User data restored from cache: ${_currentUser?.displayName}, role: ${_currentUser?.role}');
         DioClient().scheduleTokenRefresh(_token!);
       } catch (e) {
         log('Failed to parse cached user data: $e');
-        await _clearAuthState();
+        await clearUserData();
       }
     } else {
       log('No cached user data found, clearing tokens');
-      await _clearAuthState();
+      await clearUserData();
     }
   }
 
@@ -142,16 +200,6 @@ class UserProvider with ChangeNotifier {
       log('Refresh on startup failed: $e');
       return false;
     }
-  }
-
-  Future<void> _clearAuthState() async {
-    _token = null;
-    _refreshToken = null;
-    _tokenExpiry = null;
-    _currentUser = null;
-    _api.clearToken();
-    _api.clearRefreshToken();
-    await _clearTokenFromCache();
   }
 
   Future<void> _saveTokenToCache(String token) async {

@@ -16,7 +16,7 @@ class DioClient {
   static const String _baseUrl =
       'http://41.33.226.211:8099/tasks-api/api'; //PUBLIC_SERVER(PUBLIC_ONLINE_SERVER)
   static const Duration _refreshBuffer = Duration(seconds: 60);
-  static const int _maxRefreshRetries = 3;
+  static const Duration _pollInterval = Duration(minutes: 5);
 
   static final DioClient instance = DioClient._();
   late final Dio _dio;
@@ -24,8 +24,7 @@ class DioClient {
   String? _token;
   String? _refreshToken;
   bool _isRefreshing = false;
-  int _refreshRetryCount = 0;
-  Timer? _refreshTimer;
+  Timer? _periodicTimer;
   final Queue<_PendingRequest> _pendingRequests = Queue();
 
   OnTokensRefreshed? _onTokensRefreshed;
@@ -112,25 +111,35 @@ class DioClient {
   // --- Proactive Token Refresh ---
 
   void scheduleTokenRefresh(String token) {
-    _refreshTimer?.cancel();
+    _periodicTimer?.cancel();
+
     final expiry = JwtHelper.extractExpiry(token);
     if (expiry == null) {
       log('No exp claim in token, proactive refresh disabled');
       return;
     }
 
+    log('Starting periodic token refresh checks (every ${_pollInterval.inMinutes}min)');
+    _periodicTimer = Timer.periodic(_pollInterval, (_) => _checkAndRefresh());
+
+    // Also do an immediate check (catches already-expired tokens)
+    _checkAndRefresh();
+  }
+
+  Future<void> _checkAndRefresh() async {
+    if (_refreshToken == null || _isRefreshing || _token == null) return;
+
+    final expiry = JwtHelper.extractExpiry(_token!);
+    if (expiry == null) return;
+
     final expiryDateTime = DateTime.fromMillisecondsSinceEpoch(expiry * 1000);
-    final refreshAt = expiryDateTime.subtract(_refreshBuffer);
-    final delay = refreshAt.difference(DateTime.now());
+    final now = DateTime.now();
 
-    if (delay.isNegative) {
-      log('Token already expired or about to expire, refreshing immediately');
-      _proactiveRefresh();
-      return;
+    // Refresh if within buffer window or already expired
+    if (expiryDateTime.difference(now) < _refreshBuffer) {
+      log('Token approaching expiry, initiating proactive refresh');
+      await _proactiveRefresh();
     }
-
-    log('Scheduling proactive token refresh in ${delay.inSeconds}s (at $refreshAt)');
-    _refreshTimer = Timer(delay, _proactiveRefresh);
   }
 
   Future<void> _proactiveRefresh() async {
@@ -153,7 +162,6 @@ class DioClient {
 
       _token = newAccessToken;
       _refreshToken = newRefreshToken;
-      _refreshRetryCount = 0;
 
       final newExpiry = JwtHelper.extractExpiry(newAccessToken);
       final expiryDateTime = newExpiry != null
@@ -162,18 +170,26 @@ class DioClient {
 
       await _onTokensRefreshed?.call(
           newAccessToken, newRefreshToken, expiryDateTime);
-      scheduleTokenRefresh(newAccessToken);
       log('Proactive token refresh successful');
     } catch (e) {
       log('Proactive refresh failed: $e');
-      _refreshRetryCount++;
-      if (_refreshRetryCount >= _maxRefreshRetries) {
-        log('Max proactive refresh retries exceeded, clearing tokens');
-        _token = null;
-        _refreshToken = null;
-        _refreshRetryCount = 0;
-        await _onSessionExpired?.call();
+
+      // If the server explicitly rejected the refresh token, clear session
+      if (e is DioException) {
+        final statusCode = e.response?.statusCode;
+        if (statusCode == 401 || statusCode == 403) {
+          log('Refresh token rejected by server (status $statusCode), clearing session');
+          _token = null;
+          _refreshToken = null;
+          _periodicTimer?.cancel();
+          await _onSessionExpired?.call();
+          _isRefreshing = false;
+          return;
+        }
       }
+
+      // Transient error (network, timeout, 5xx) — periodic timer will retry
+      log('Transient refresh error, will retry on next periodic check');
     } finally {
       _isRefreshing = false;
     }
@@ -190,29 +206,14 @@ class DioClient {
     }
 
     if (_refreshToken == null) {
+      log('No refresh token available, session expired');
       await _onSessionExpired?.call();
-      return handler.next(error);
-    }
-
-    if (_refreshRetryCount >= _maxRefreshRetries) {
-      log('Max refresh retries ($_maxRefreshRetries) exceeded');
-      _token = null;
-      _refreshToken = null;
-      _refreshRetryCount = 0;
-      await _onSessionExpired?.call();
-
-      while (_pendingRequests.isNotEmpty) {
-        final pending = _pendingRequests.removeFirst();
-        pending.handler.next(pending.error);
-        pending.completer.complete();
-      }
       return handler.next(error);
     }
 
     _isRefreshing = true;
-    _refreshRetryCount++;
     try {
-      log('Access token expired, attempting refresh... (attempt $_refreshRetryCount/$_maxRefreshRetries)');
+      log('Access token expired, attempting refresh...');
       final response = await _dioForRefresh.post('/auth/refresh-token', data: {
         'refreshToken': _refreshToken,
       });
@@ -227,7 +228,6 @@ class DioClient {
 
       _token = newAccessToken;
       _refreshToken = newRefreshToken;
-      _refreshRetryCount = 0;
       log('Token refresh successful');
 
       final newExpiry = JwtHelper.extractExpiry(newAccessToken);
@@ -248,8 +248,11 @@ class DioClient {
         handler.next(e);
       }
 
-      // Complete all queued requests
-      while (_pendingRequests.isNotEmpty) {
+      // Complete all queued requests (with guard against infinite loop)
+      final pendingCount = _pendingRequests.length;
+      var processedCount = 0;
+      while (_pendingRequests.isNotEmpty && processedCount < pendingCount) {
+        processedCount++;
         final pending = _pendingRequests.removeFirst();
         try {
           pending.error.requestOptions.headers['Authorization'] =
@@ -262,10 +265,21 @@ class DioClient {
         pending.completer.complete();
       }
     } on DioException catch (e) {
-      log('Token refresh failed - DioException: status=${e.response?.statusCode}, data=${e.response?.data}');
-      _token = null;
-      _refreshToken = null;
-      await _onSessionExpired?.call();
+      final refreshStatusCode = e.response?.statusCode;
+      log('Token refresh failed - DioException: status=$refreshStatusCode, data=${e.response?.data}');
+
+      // Only destroy session if server explicitly rejected the refresh token
+      if (refreshStatusCode == 401 || refreshStatusCode == 403) {
+        log('Refresh token rejected by server, clearing session');
+        _token = null;
+        _refreshToken = null;
+        _periodicTimer?.cancel();
+        await _onSessionExpired?.call();
+      } else {
+        // Transient error (network, timeout, 5xx) — don't destroy session
+        // Periodic timer will retry in background; next API call will try again
+        log('Transient refresh error, keeping session alive');
+      }
 
       while (_pendingRequests.isNotEmpty) {
         final pending = _pendingRequests.removeFirst();
@@ -275,9 +289,7 @@ class DioClient {
       return handler.next(error);
     } catch (e) {
       log('Token refresh failed - Unexpected error: $e');
-      _token = null;
-      _refreshToken = null;
-      await _onSessionExpired?.call();
+      log('Unexpected refresh error, keeping session alive');
 
       while (_pendingRequests.isNotEmpty) {
         final pending = _pendingRequests.removeFirst();
@@ -291,7 +303,7 @@ class DioClient {
   }
 
   void dispose() {
-    _refreshTimer?.cancel();
+    _periodicTimer?.cancel();
   }
 }
 

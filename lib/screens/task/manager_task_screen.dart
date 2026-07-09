@@ -429,7 +429,8 @@ class _TaskScreenState extends State<ManagerTaskScreen> {
           colorScheme: colorScheme,
           onLogout: () async {
             await userProvider.signOut();
-            Navigator.of(context).pushReplacementNamed(AppRoute.loginRouteName);
+            Navigator.of(context)
+                .pushReplacementNamed(AppRoute.authWrapperRouteName);
           },
         ),
       ],

@@ -200,7 +200,8 @@ void _showLogoutDialog(
           onPressed: () async {
             Navigator.pop(dialogContext);
             await userProvider.signOut();
-            Navigator.of(context).pushReplacementNamed(AppRoute.loginRouteName);
+            Navigator.of(context)
+                .pushReplacementNamed(AppRoute.authWrapperRouteName);
           },
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.red.shade600,

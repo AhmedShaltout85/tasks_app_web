@@ -708,9 +708,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 fontSize: 16,
               );
 
-              // Navigate to login screen or pop until login
+              // Navigate to AuthWrapper which will show login screen
               Navigator.pushNamedAndRemoveUntil(
-                  context, AppRoute.loginRouteName, (route) => false);
+                  context, AppRoute.authWrapperRouteName, (route) => false);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: colorScheme.error,

@@ -165,7 +165,7 @@ class TopNavBar extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             child: Image.asset(
-              'assets/icons/logo.jpeg',
+              'assets/icons/logo-300.png',
               height: 50,
               width: 50,
               fit: BoxFit.contain,
@@ -344,7 +344,7 @@ class TopNavBar extends StatelessWidget {
               await userProvider.signOut();
               if (context.mounted) {
                 Navigator.of(context)
-                    .pushReplacementNamed(AppRoute.loginRouteName);
+                    .pushReplacementNamed(AppRoute.authWrapperRouteName);
               }
             },
             style: ElevatedButton.styleFrom(
