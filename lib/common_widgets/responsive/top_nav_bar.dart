@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:responsive_framework/responsive_framework.dart';
 import 'package:tasks_app/controller/user_provider.dart';
+import 'package:tasks_app/dashboard/dashboard_screen.dart';
 import 'package:tasks_app/screens/about_app/manage_about_app_screen.dart';
 import 'package:tasks_app/screens/complaints/manage_complmaints_screen.dart';
 import 'package:tasks_app/screens/places/manage_place_screen.dart';
@@ -27,10 +28,13 @@ class TopNavItem {
   });
 }
 
-void _navTo(BuildContext context, Widget screen) {
+void _navTo(BuildContext context, Widget screen, int index) {
   Navigator.pushReplacement(
     context,
-    MaterialPageRoute(builder: (_) => screen),
+    MaterialPageRoute(
+      builder: (_) => screen,
+      settings: RouteSettings(arguments: {'selectedIndex': index}),
+    ),
   );
 }
 
@@ -41,47 +45,52 @@ Widget buildAdminTopNavBar(BuildContext context, int selectedIndex) {
       TopNavItem(
         icon: Icons.home_rounded,
         title: 'الرئيسية',
-        onTap: () => _navTo(context, const TaskScreen()),
+        onTap: () => _navTo(context, const TaskScreen(), 0),
       ),
       TopNavItem(
         icon: Icons.people_rounded,
         title: 'أدارة المستخدمين',
-        onTap: () => _navTo(context, const ManageUserScreen()),
+        onTap: () => _navTo(context, const ManageUserScreen(), 1),
       ),
       TopNavItem(
         icon: Icons.shield_outlined,
         title: 'عناصر وقائية',
-        onTap: () => _navTo(context, const PreventiveItemScreen()),
+        onTap: () => _navTo(context, const PreventiveItemScreen(), 2),
       ),
       TopNavItem(
         icon: Icons.apps_outage,
         title: 'إدارة التطبيقات',
-        onTap: () => _navTo(context, const ManageAboutAppScreen()),
+        onTap: () => _navTo(context, const ManageAboutAppScreen(), 3),
       ),
       TopNavItem(
         icon: Icons.location_on_rounded,
         title: 'إدارة المواقع',
-        onTap: () => _navTo(context, const ManagePlaceScreen()),
+        onTap: () => _navTo(context, const ManagePlaceScreen(), 4),
       ),
       TopNavItem(
         icon: Icons.assessment_rounded,
         title: 'التقارير اليومية',
-        onTap: () => _navTo(context, const ReportScreen()),
+        onTap: () => _navTo(context, const ReportScreen(), 5),
       ),
       TopNavItem(
         icon: Icons.build_circle_outlined,
         title: 'تقارير صيانة وقائية',
-        onTap: () => _navTo(context, const PreventiveMaintenanceReportScreen()),
+        onTap: () => _navTo(context, const PreventiveMaintenanceReportScreen(), 6),
       ),
       TopNavItem(
         icon: Icons.settings_rounded,
         title: 'الضبط والاعدادات',
-        onTap: () => _navTo(context, const SettingsScreen()),
+        onTap: () => _navTo(context, const SettingsScreen(), 7),
       ),
       TopNavItem(
         icon: Icons.report_problem_outlined,
         title: 'شكاوى الموظفين',
-        onTap: () => _navTo(context, const ManageComplaintsScreen()),
+        onTap: () => _navTo(context, const ManageComplaintsScreen(), 8),
+      ),
+      TopNavItem(
+        icon: Icons.dashboard_rounded,
+        title: 'لوحة التحكم',
+        onTap: () => _navTo(context, const DashboardScreen(), 9),
       ),
     ],
   );
@@ -94,37 +103,42 @@ Widget buildUserTopNavBar(BuildContext context, int selectedIndex) {
       TopNavItem(
         icon: Icons.home_rounded,
         title: 'الرئيسية',
-        onTap: () => _navTo(context, const UserTaskScreen()),
+        onTap: () => _navTo(context, const UserTaskScreen(), 0),
       ),
       TopNavItem(
         icon: Icons.shield_outlined,
         title: 'عناصر وقائية',
-        onTap: () => _navTo(context, const PreventiveItemScreen()),
+        onTap: () => _navTo(context, const PreventiveItemScreen(), 1),
       ),
       TopNavItem(
         icon: Icons.assessment_rounded,
         title: 'التقارير اليومية',
-        onTap: () => _navTo(context, const ReportScreen()),
+        onTap: () => _navTo(context, const ReportScreen(), 2),
       ),
       TopNavItem(
         icon: Icons.build_circle_outlined,
         title: 'تقارير صيانة وقائية',
-        onTap: () => _navTo(context, const PreventiveMaintenanceReportScreen()),
+        onTap: () => _navTo(context, const PreventiveMaintenanceReportScreen(), 3),
       ),
       TopNavItem(
         icon: Icons.add_circle_outline,
         title: 'إضافة صيانة وقائية',
-        onTap: () => _navTo(context, const ManagePreventiveMaintenanceScreen()),
+        onTap: () => _navTo(context, const ManagePreventiveMaintenanceScreen(), 4),
       ),
       TopNavItem(
         icon: Icons.settings_rounded,
         title: 'الضبط والاعدادات',
-        onTap: () => _navTo(context, const SettingsScreen()),
+        onTap: () => _navTo(context, const SettingsScreen(), 5),
       ),
       TopNavItem(
         icon: Icons.info_outline_rounded,
         title: 'حول التطبيقات',
-        onTap: () => _navTo(context, const ManageAboutAppScreen()),
+        onTap: () => _navTo(context, const ManageAboutAppScreen(), 6),
+      ),
+      TopNavItem(
+        icon: Icons.dashboard_rounded,
+        title: 'لوحة التحكم',
+        onTap: () => _navTo(context, const DashboardScreen(), 7),
       ),
     ],
   );

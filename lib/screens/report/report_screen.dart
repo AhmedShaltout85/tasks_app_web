@@ -47,6 +47,8 @@ class _ReportScreenState extends State<ReportScreen>
     'سوفتوير'
   ];
 
+  int _selectedDrawerIndex = 0;
+
   @override
   void initState() {
     super.initState();
@@ -57,6 +59,16 @@ class _ReportScreenState extends State<ReportScreen>
     selectedIsRemote = 'الكل';
     selectedDepartment = 'الكل';
     selectedComplaintType = 'الكل';
+
+    // Read selected index from route arguments
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+      if (args != null && args['selectedIndex'] != null) {
+        setState(() {
+          _selectedDrawerIndex = args['selectedIndex'] as int;
+        });
+      }
+    });
 
     _animationController = AnimationController(
       vsync: this,
@@ -310,7 +322,7 @@ class _ReportScreenState extends State<ReportScreen>
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     final isAdmin = userProvider.currentUser?.role == 'ADMIN' ||
         userProvider.currentUser?.role == 'MANAGER';
-    final selectedIndex = isAdmin ? 5 : 2;
+    final selectedIndex = _selectedDrawerIndex;
 
     return ResponsiveScaffold(
       topNavBar:

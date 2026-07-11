@@ -28,6 +28,7 @@ class _ManageAboutAppScreenState extends State<ManageAboutAppScreen>
   late Animation<double> _fadeAnimation;
   final ConnectivityService _connectivity = ConnectivityService();
   bool _isInitialized = false;
+  int _selectedDrawerIndex = 0;
 
   @override
   void initState() {
@@ -40,6 +41,14 @@ class _ManageAboutAppScreenState extends State<ManageAboutAppScreen>
       parent: _animationController,
       curve: Curves.easeInOut,
     );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+      if (args != null && args['selectedIndex'] != null) {
+        setState(() {
+          _selectedDrawerIndex = args['selectedIndex'] as int;
+        });
+      }
+    });
   }
 
   @override
@@ -450,7 +459,7 @@ class _ManageAboutAppScreenState extends State<ManageAboutAppScreen>
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     final isAdmin = userProvider.currentUser?.role == 'ADMIN' ||
         userProvider.currentUser?.role == 'MANAGER';
-    final selectedIndex = isAdmin ? 3 : 6;
+    final selectedIndex = _selectedDrawerIndex;
 
     return ResponsiveScaffold(
       topNavBar: buildRoleTopNavBar(context, selectedIndex),

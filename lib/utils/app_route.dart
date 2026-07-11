@@ -2,6 +2,7 @@ class AppRoute {
   static const String splashRouteName = '/';
   static const String loginRouteName = '/login-screen';
   static const String signupRouteName = '/signup-screen';
+  static const String dashboardRouteName = '/dashboard';
   static const String userRouteName = '/user-screen';
   static const String taskRouteName = '/task-screen';
   static const String userTaskRouteName = '/user-task-screen';

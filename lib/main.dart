@@ -24,13 +24,16 @@ import 'package:tasks_app/screens/signup/signup_screen.dart';
 import 'package:tasks_app/screens/splash/splash_screen.dart';
 import 'package:tasks_app/screens/task/task_screen.dart';
 import 'package:tasks_app/screens/task/user_task_screen.dart';
+import 'package:tasks_app/dashboard/dashboard_screen.dart';
 
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:tasks_app/utils/app_route.dart';
 import 'package:tasks_app/utils/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await CacheHelper.init();
+  await initializeDateFormatting();
 
   runApp(
     MultiProvider(
@@ -68,6 +71,7 @@ class MyApp extends StatelessWidget {
               routes: {
                 AppRoute.loginRouteName: (context) => const LoginScreen(),
                 AppRoute.signupRouteName: (context) => const SignUpScreen(),
+                AppRoute.dashboardRouteName: (context) => const DashboardScreen(),
                 AppRoute.taskRouteName: (context) => const TaskScreen(),
                 AppRoute.userTaskRouteName: (context) => const UserTaskScreen(),
                 AppRoute.authWrapperRouteName: (context) => const AuthWrapper(),

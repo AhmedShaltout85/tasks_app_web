@@ -25,6 +25,7 @@ class _ManageUserScreenState extends State<ManageUserScreen>
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   final ConnectivityService _connectivity = ConnectivityService();
+  int _selectedDrawerIndex = 2;
 
   @override
   void initState() {
@@ -38,6 +39,13 @@ class _ManageUserScreenState extends State<ManageUserScreen>
       curve: Curves.easeInOut,
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Read selected index from route arguments
+      final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+      if (args != null && args['selectedIndex'] != null) {
+        setState(() {
+          _selectedDrawerIndex = args['selectedIndex'] as int;
+        });
+      }
       _fetchData();
     });
   }
@@ -246,10 +254,10 @@ class _ManageUserScreenState extends State<ManageUserScreen>
     final userColor = isDark ? colorScheme.secondary : const Color(0xFF4CAF50);
 
     return ResponsiveScaffold(
-      topNavBar: buildRoleTopNavBar(context, 1),
+      topNavBar: buildRoleTopNavBar(context, _selectedDrawerIndex),
       sidebarContent: buildAppSidebar(
         context: context,
-        selectedIndex: 1,
+        selectedIndex: _selectedDrawerIndex,
       ),
       appBar: AppBar(
         leading: const SizedBox.shrink(),

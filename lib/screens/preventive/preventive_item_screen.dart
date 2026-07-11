@@ -27,11 +27,19 @@ class _PreventiveItemScreenState extends State<PreventiveItemScreen> {
   final ScrollController _horizontalScrollController = ScrollController();
   bool _isLoading = false;
   String? _selectedAppName;
+  int _selectedDrawerIndex = 0;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Read selected index from route arguments
+      final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+      if (args != null && args['selectedIndex'] != null) {
+        setState(() {
+          _selectedDrawerIndex = args['selectedIndex'] as int;
+        });
+      }
       _checkUserStatus();
       _fetchData();
     });
@@ -270,7 +278,7 @@ class _PreventiveItemScreenState extends State<PreventiveItemScreen> {
     final colorScheme = Theme.of(context).colorScheme;
     final isAdmin = userProvider.currentUser?.role == 'ADMIN' ||
         userProvider.currentUser?.role == 'MANAGER';
-    final selectedIndex = isAdmin ? 2 : 1;
+    final selectedIndex = _selectedDrawerIndex;
 
     return ResponsiveScaffold(
       topNavBar: buildRoleTopNavBar(context, selectedIndex),

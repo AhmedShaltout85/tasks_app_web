@@ -17,6 +17,7 @@ import 'package:tasks_app/models/user_model.dart';
 import 'package:tasks_app/screens/report/preventive_maintenance_report_screen.dart';
 import 'package:tasks_app/screens/report/report_screen.dart';
 import 'package:tasks_app/screens/settings/settings_screen.dart';
+import 'package:tasks_app/dashboard/widgets/dashboard_content.dart';
 import 'package:tasks_app/services/connection_dialog_service.dart';
 import 'package:tasks_app/common_widgets/responsive/empty_state_widget.dart';
 import 'package:tasks_app/common_widgets/task_widgets/shared_task_card.dart';
@@ -80,32 +81,23 @@ class _TaskScreenState extends State<ManagerTaskScreen> {
       }
       if (!mounted) return;
 
-      // Step 1: Fetch tasks
       log('Step1: Fetching tasks...');
       await context.read<DailyTaskProvider>().fetchAllTasks();
       if (!mounted) return;
-      log('Step1: Tasks done');
 
-      // Step 2: Fetch apps
       log('Step2: Fetching apps...');
       final aboutProvider = context.read<AboutAppProvider>();
       await aboutProvider.fetchAllAboutApps();
       if (!mounted) return;
-      log('Step2: Apps done');
 
-      // Step 3: Fetch places
       log('Step3: Fetching places...');
       await context.read<PlaceNameProvider>().fetchPlaceNameStrings();
       if (!mounted) return;
-      log('Step3: Places done');
 
-      // Step 4: Fetch users
       log('Step4: Fetching users...');
       await context.read<UserProvider>().fetchAllUsers();
       if (!mounted) return;
-      log('Step4: Users done');
 
-      // Populate departmentsList from all users and set filteredUsersByDept
       final allUsers = context.read<UserProvider>().users;
       setState(() {
         departmentsList = allUsers
@@ -122,24 +114,6 @@ class _TaskScreenState extends State<ManagerTaskScreen> {
       log('Stack: $stack');
     }
   }
-
-  // void _showNoInternetDialog() {
-  //   showDialog(
-  //     context: context,
-  //     builder: (context) => AlertDialog(
-  //       title: const Text('لا يوجد اتصال بالانترنت'),
-  //       content: const Text(
-  //         'يرجى التحقق من الاتصال والمحاولة مرة اخرى',
-  //       ),
-  //       actions: [
-  //         TextButton(
-  //           onPressed: () => Navigator.pop(context),
-  //           child: const Text('حسنا'),
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
 
   List<dynamic> getFilteredTasks(List<dynamic> tasks) {
     return tasks.where((task) {
@@ -161,6 +135,7 @@ class _TaskScreenState extends State<ManagerTaskScreen> {
                 (u) => u.username == assignedToUsername,
                 orElse: () => null,
               );
+          if (user == null) return false;
           final taskDepartment = user?.department?.toString() ?? '';
           if (taskDepartment != selectedDepartment) return false;
         }
@@ -192,12 +167,14 @@ class _TaskScreenState extends State<ManagerTaskScreen> {
     setState(() {
       selectedApp = null;
       isActiveFilter = null;
-      selectedDepartment = null;
-      selectedFilterDepartment = null;
-      selectedUser = null;
-      _selectedUserName = null;
       selectedIsRemote = null;
-      filteredUsersByDept = [];
+      if (_canFilterByDepartment) {
+        selectedDepartment = null;
+        selectedFilterDepartment = null;
+        selectedUser = null;
+        _selectedUserName = null;
+        filteredUsersByDept = [];
+      }
     });
   }
 
@@ -208,6 +185,61 @@ class _TaskScreenState extends State<ManagerTaskScreen> {
       selectedUser != null ||
       selectedIsRemote != null;
 
+  bool get _canFilterByDepartment {
+    final role = context.read<UserProvider>().currentUser?.role;
+    return role == 'GENERAL_MANAGER' || role == 'SECTOR_MANAGER';
+  }
+
+  InputDecoration _dropdownDecoration({
+    required bool isDark,
+    required ColorScheme colorScheme,
+    required String label,
+    required IconData icon,
+  }) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: TextStyle(
+        color: isDark ? Colors.grey[400] : Colors.grey[700],
+      ),
+      prefixIcon: Icon(icon, color: colorScheme.primary),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+      filled: true,
+      fillColor: isDark
+          ? colorScheme.surface.withValues(alpha: 0.5)
+          : Colors.white,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      isDense: true,
+    );
+  }
+
+  Widget _buildCompactDropdown<T>({
+    required bool isDark,
+    required ColorScheme colorScheme,
+    required String label,
+    required IconData icon,
+    required T? value,
+    required List<DropdownMenuItem<T>> items,
+    required ValueChanged<T?> onChanged,
+  }) {
+    return DropdownButtonFormField<T>(
+      initialValue: value,
+      isExpanded: true,
+      dropdownColor: isDark ? colorScheme.surface : Colors.white,
+      style: TextStyle(
+        fontFamily: 'Cairo',
+        color: isDark ? Colors.white : Colors.black87,
+      ),
+      decoration: _dropdownDecoration(
+        isDark: isDark,
+        colorScheme: colorScheme,
+        label: label,
+        icon: icon,
+      ),
+      items: items,
+      onChanged: onChanged,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
@@ -217,23 +249,18 @@ class _TaskScreenState extends State<ManagerTaskScreen> {
     final userProvider = context.watch<UserProvider>();
     final aboutAppProvider = context.watch<AboutAppProvider>();
 
-    // Get unique app names from AboutAppProvider with safe check
     List<String> appNames = aboutAppProvider.aboutApps.isNotEmpty
         ? aboutAppProvider.aboutApps.map((a) => a.appName).toSet().toList()
         : [];
 
-    // Get unique user names from filteredUsersByDept
     List<String> usersNamesList = filteredUsersByDept.isNotEmpty
         ? filteredUsersByDept
-            .where(
-              (u) => u.role == 'USER' && u.department == selectedDepartment,
-            )
+            .where((u) => u.role == 'USER' && u.department == selectedDepartment)
             .map((u) => u.username)
             .toSet()
             .toList()
         : [];
 
-    // Get unique department names from state
     List<String> departmentsList =
         this.departmentsList.isNotEmpty ? this.departmentsList : [];
 
@@ -244,28 +271,33 @@ class _TaskScreenState extends State<ManagerTaskScreen> {
         selectedIndex: _selectedNavIndex,
         items: [
           TopNavItem(
+            icon: Icons.dashboard_rounded,
+            title: 'لوحة التحكم',
+            onTap: () => setState(() => _selectedNavIndex = 0),
+          ),
+          TopNavItem(
             icon: Icons.home_outlined,
             title: 'المهام اليومية',
-            onTap: () => setState(() => _selectedNavIndex = 0),
+            onTap: () => setState(() => _selectedNavIndex = 1),
           ),
           TopNavItem(
             icon: Icons.build_circle_outlined,
             title: 'تقارير وقائية',
-            onTap: () => setState(() => _selectedNavIndex = 1),
+            onTap: () => setState(() => _selectedNavIndex = 2),
           ),
           TopNavItem(
             icon: Icons.assessment_outlined,
             title: 'التقارير',
-            onTap: () => setState(() => _selectedNavIndex = 2),
+            onTap: () => setState(() => _selectedNavIndex = 3),
           ),
           TopNavItem(
             icon: Icons.settings_outlined,
             title: 'الضبط',
-            onTap: () => setState(() => _selectedNavIndex = 3),
+            onTap: () => setState(() => _selectedNavIndex = 4),
           ),
         ],
       ),
-      appBar: _selectedNavIndex == 0 ? _buildAppBar() : null,
+      appBar: _selectedNavIndex == 1 ? _buildAppBar() : null,
       drawer: null,
       sidebarContent: _buildSidebar(
         isDark: isDark,
@@ -288,12 +320,13 @@ class _TaskScreenState extends State<ManagerTaskScreen> {
           if (!isDesktop)
             CustomReusableBottomNavBar(
               currentIndex: _selectedNavIndex,
-              onTap: (index) {
-                setState(() {
-                  _selectedNavIndex = index;
-                });
-              },
+              onTap: (index) => setState(() => _selectedNavIndex = index),
               items: const [
+                BottomNavItem(
+                  icon: Icons.dashboard_outlined,
+                  activeIcon: Icons.dashboard,
+                  label: 'لوحة التحكم',
+                ),
                 BottomNavItem(
                   icon: Icons.home_outlined,
                   activeIcon: Icons.home,
@@ -323,36 +356,37 @@ class _TaskScreenState extends State<ManagerTaskScreen> {
 
   PreferredSizeWidget _buildAppBar() {
     final colorScheme = Theme.of(context).colorScheme;
+    final isTasks = _selectedNavIndex == 1;
+
     return AppBar(
       leading: const SizedBox.shrink(),
       backgroundColor: Colors.transparent,
       actions: [
-        Stack(
-          children: [
-            IconButton(
-              tooltip: 'تخصيص',
-              icon: Icon(Icons.filter_list, color: colorScheme.onSurface),
-              onPressed: () {
-                setState(() {
-                  showFilters = !showFilters;
-                });
-              },
-            ),
-            if (hasActiveFilters)
-              Positioned(
-                right: 8,
-                top: 8,
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: const BoxDecoration(
-                    color: Colors.red,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const SizedBox(width: 8, height: 8),
-                ),
+        if (isTasks)
+          Stack(
+            children: [
+              IconButton(
+                tooltip: 'تخصيص',
+                icon: Icon(Icons.filter_list, color: colorScheme.onSurface),
+                onPressed: () {
+                  setState(() => showFilters = !showFilters);
+                },
               ),
-          ],
-        ),
+              if (hasActiveFilters)
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const SizedBox(width: 8, height: 8),
+                  ),
+                ),
+            ],
+          ),
       ],
     );
   }
@@ -379,43 +413,33 @@ class _TaskScreenState extends State<ManagerTaskScreen> {
             items: [
               DrawerItem(
                 index: 0,
-                icon: Icons.home_outlined,
-                title: 'المهام اليومية',
-                onTap: () {
-                  setState(() {
-                    _selectedNavIndex = 0;
-                  });
-                },
+                icon: Icons.dashboard_rounded,
+                title: 'لوحة التحكم',
+                onTap: () => setState(() => _selectedNavIndex = 0),
               ),
               DrawerItem(
                 index: 1,
-                icon: Icons.build_circle_outlined,
-                title: 'تقارير وقائية',
-                onTap: () {
-                  setState(() {
-                    _selectedNavIndex = 1;
-                  });
-                },
+                icon: Icons.home_outlined,
+                title: 'المهام اليومية',
+                onTap: () => setState(() => _selectedNavIndex = 1),
               ),
               DrawerItem(
                 index: 2,
-                icon: Icons.assessment_outlined,
-                title: 'التقارير',
-                onTap: () {
-                  setState(() {
-                    _selectedNavIndex = 2;
-                  });
-                },
+                icon: Icons.build_circle_outlined,
+                title: 'تقارير وقائية',
+                onTap: () => setState(() => _selectedNavIndex = 2),
               ),
               DrawerItem(
                 index: 3,
+                icon: Icons.assessment_outlined,
+                title: 'التقارير',
+                onTap: () => setState(() => _selectedNavIndex = 3),
+              ),
+              DrawerItem(
+                index: 4,
                 icon: Icons.settings_outlined,
                 title: 'الضبط',
-                onTap: () {
-                  setState(() {
-                    _selectedNavIndex = 3;
-                  });
-                },
+                onTap: () => setState(() => _selectedNavIndex = 4),
               ),
             ],
             selectedIndex: _selectedNavIndex,
@@ -448,32 +472,203 @@ class _TaskScreenState extends State<ManagerTaskScreen> {
   ) {
     switch (_selectedNavIndex) {
       case 0:
-        return _buildHomeContent(
-          isDark,
-          colorScheme,
-          userProvider,
-          aboutAppProvider,
-          appNames,
-          usersNamesList,
-          departmentsList,
-        );
+        return _buildDashboardWithFilter(isDark, colorScheme, departmentsList);
       case 1:
-        return const PreventiveMaintenanceReportScreen(embedded: true);
+        return _buildHomeContent(
+          isDark, colorScheme, userProvider, aboutAppProvider,
+          appNames, usersNamesList, departmentsList,
+        );
       case 2:
-        return const ReportScreen(embedded: true);
+        return const PreventiveMaintenanceReportScreen(embedded: true);
       case 3:
+        return const ReportScreen(embedded: true);
+      case 4:
         return const SettingsScreen(embedded: true);
       default:
-        return _buildHomeContent(
-          isDark,
-          colorScheme,
-          userProvider,
-          aboutAppProvider,
-          appNames,
-          usersNamesList,
-          departmentsList,
-        );
+        return _buildDashboardWithFilter(isDark, colorScheme, departmentsList);
     }
+  }
+
+  Widget _buildDashboardWithFilter(
+    bool isDark,
+    ColorScheme colorScheme,
+    List<String> departmentsList,
+  ) {
+    if (!_canFilterByDepartment) {
+      return ResponsiveContentContainer(
+        child: DashboardContent(
+          departmentFilter: selectedDepartment,
+          userFilter: _selectedUserName,
+        ),
+      );
+    }
+
+    final userProvider = context.read<UserProvider>();
+    final allUsers = userProvider.users;
+
+    final assigneeList = selectedDepartment != null
+        ? allUsers
+            .where((u) => u.department == selectedDepartment)
+            .map((u) => u.username)
+            .where((name) => name != 'admin' && name != 'manager' && name != 'gm')
+            .toSet()
+            .toList()
+        : allUsers
+            .map((u) => u.username)
+            .where((name) => name != 'admin' && name != 'manager' && name != 'gm')
+            .toSet()
+            .toList();
+
+    return ResponsiveContentContainer(
+      child: Column(
+        children: [
+          Container(
+            margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isDark ? colorScheme.surface : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: colorScheme.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(Icons.filter_alt_rounded, color: colorScheme.primary, size: 20),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    'تخصيص',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      fontFamily: 'Cairo',
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
+                  const Spacer(),
+                  if (selectedDepartment != null || selectedUser != null)
+                    TextButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          selectedDepartment = null;
+                          selectedFilterDepartment = null;
+                          selectedUser = null;
+                          _selectedUserName = null;
+                          filteredUsersByDept = [];
+                        });
+                      },
+                      icon: Icon(Icons.clear_rounded, size: 18, color: colorScheme.primary),
+                      label: Text(
+                        'حذف الفلتر',
+                        style: TextStyle(
+                          color: colorScheme.primary,
+                          fontFamily: 'Cairo',
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildCompactDropdown<String>(
+                      isDark: isDark,
+                      colorScheme: colorScheme,
+                      label: 'الادارة',
+                      icon: Icons.business_rounded,
+                      value: selectedDepartment,
+                      items: [
+                        const DropdownMenuItem<String>(
+                          value: null,
+                          child: Text('كل الادارات'),
+                        ),
+                        ...departmentsList.map((dept) {
+                          return DropdownMenuItem<String>(
+                            value: dept,
+                            child: Text(dept, overflow: TextOverflow.ellipsis),
+                          );
+                        }),
+                      ],
+                      onChanged: (value) async {
+                        setState(() {
+                          selectedDepartment = value;
+                          selectedFilterDepartment = value;
+                          selectedUser = null;
+                          _selectedUserName = null;
+                        });
+                        if (value != null) {
+                          await userProvider.fetchUsersByDepartment(value);
+                          setState(() {
+                            filteredUsersByDept = userProvider.users;
+                          });
+                        } else {
+                          setState(() => filteredUsersByDept = []);
+                        }
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildCompactDropdown<String>(
+                      isDark: isDark,
+                      colorScheme: colorScheme,
+                      label: 'الموظف',
+                      icon: Icons.person_outline_rounded,
+                      value: _selectedUserName,
+                      items: [
+                        const DropdownMenuItem<String>(
+                          value: null,
+                          child: Text('كل الموظفين'),
+                        ),
+                        ...assigneeList.map((name) {
+                          return DropdownMenuItem<String>(
+                            value: name,
+                            child: Text(name, overflow: TextOverflow.ellipsis),
+                          );
+                        }),
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          selectedUser = value;
+                          _selectedUserName = value;
+                        });
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: DashboardContent(
+              departmentFilter: selectedDepartment,
+              userFilter: _selectedUserName,
+            ),
+          ),
+        ),
+      ],
+    ),
+    );
   }
 
   Widget _buildHomeContent(
@@ -492,291 +687,9 @@ class _TaskScreenState extends State<ManagerTaskScreen> {
             duration: const Duration(milliseconds: 300),
             height: showFilters ? null : 0,
             child: showFilters
-                ? Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: isDark ? colorScheme.surface : Colors.grey[100],
-                      boxShadow: [
-                        BoxShadow(
-                          color: isDark
-                              ? Colors.black.withOpacity(0.3)
-                              : Colors.grey.withOpacity(0.3),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'تخصيصات',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: isDark ? Colors.white : Colors.black87,
-                              ),
-                            ),
-                            if (hasActiveFilters)
-                              TextButton.icon(
-                                onPressed: resetFilters,
-                                icon: Icon(
-                                  Icons.clear_all,
-                                  size: 18,
-                                  color: colorScheme.primary,
-                                ),
-                                label: Text(
-                                  'حذف التصفية',
-                                  style: TextStyle(color: colorScheme.primary),
-                                ),
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: DropdownButtonFormField<String>(
-                                initialValue: selectedApp,
-                                isExpanded: true,
-                                dropdownColor:
-                                    isDark ? colorScheme.surface : Colors.white,
-                                style: TextStyle(
-                                  color: isDark ? Colors.white : Colors.black87,
-                                ),
-                                decoration: InputDecoration(
-                                  labelText: 'التطبيق/الجهاز',
-                                  labelStyle: TextStyle(
-                                    color: isDark
-                                        ? Colors.grey[400]
-                                        : Colors.grey[700],
-                                  ),
-                                  prefixIcon: Icon(
-                                    Icons.apps,
-                                    color: colorScheme.primary,
-                                  ),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  filled: true,
-                                  fillColor: isDark
-                                      ? colorScheme.surface
-                                          .withValues(alpha: 0.5)
-                                      : Colors.white,
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 14,
-                                  ),
-                                ),
-                                items: [
-                                  const DropdownMenuItem<String>(
-                                    value: null,
-                                    child: Text('كل التطبيقات'),
-                                  ),
-                                  ...appNames.map((name) {
-                                    return DropdownMenuItem<String>(
-                                      value: name,
-                                      child: Text(name),
-                                    );
-                                  }),
-                                ],
-                                onChanged: (value) {
-                                  setState(() {
-                                    selectedApp = value;
-                                  });
-                                },
-                              ),
-                            ),
-                            const SizedBox(width: 5),
-                            Expanded(
-                              child: DropdownButtonFormField<bool?>(
-                                initialValue: selectedIsRemote,
-                                isExpanded: true,
-                                dropdownColor:
-                                    isDark ? colorScheme.surface : Colors.white,
-                                style: TextStyle(
-                                  color: isDark ? Colors.white : Colors.black87,
-                                ),
-                                decoration: InputDecoration(
-                                  labelText: 'العمل عن بعد',
-                                  labelStyle: TextStyle(
-                                    color: isDark
-                                        ? Colors.grey[400]
-                                        : Colors.grey[700],
-                                  ),
-                                  prefixIcon: Icon(
-                                    Icons.work,
-                                    color: colorScheme.primary,
-                                  ),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  filled: true,
-                                  fillColor: isDark
-                                      ? colorScheme.surface
-                                          .withValues(alpha: 0.5)
-                                      : Colors.white,
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 14,
-                                  ),
-                                ),
-                                items: [
-                                  const DropdownMenuItem<bool?>(
-                                    value: null,
-                                    child: Text('الكل'),
-                                  ),
-                                  const DropdownMenuItem<bool?>(
-                                    value: true,
-                                    child: Text('نعم'),
-                                  ),
-                                  const DropdownMenuItem<bool?>(
-                                    value: false,
-                                    child: Text('لا'),
-                                  ),
-                                ],
-                                onChanged: (value) {
-                                  setState(() {
-                                    selectedIsRemote = value;
-                                  });
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: DropdownButtonFormField<String>(
-                                initialValue: selectedDepartment,
-                                isExpanded: true,
-                                dropdownColor:
-                                    isDark ? colorScheme.surface : Colors.white,
-                                style: TextStyle(
-                                  color: isDark ? Colors.white : Colors.black87,
-                                ),
-                                decoration: InputDecoration(
-                                  labelText: 'الادارة',
-                                  labelStyle: TextStyle(
-                                    color: isDark
-                                        ? Colors.grey[400]
-                                        : Colors.grey[700],
-                                  ),
-                                  prefixIcon: Icon(
-                                    Icons.business,
-                                    color: colorScheme.primary,
-                                  ),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  filled: true,
-                                  fillColor: isDark
-                                      ? colorScheme.surface
-                                          .withValues(alpha: 0.5)
-                                      : Colors.white,
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 14,
-                                  ),
-                                ),
-                                items: [
-                                  const DropdownMenuItem<String>(
-                                    value: null,
-                                    child: Text('كل الادارات'),
-                                  ),
-                                  ...departmentsList.map((dept) {
-                                    return DropdownMenuItem<String>(
-                                      value: dept,
-                                      child: Text(dept),
-                                    );
-                                  }),
-                                ],
-                                onChanged: (value) async {
-                                  String? oldUser = _selectedUserName;
-                                  setState(() {
-                                    selectedDepartment = value;
-                                    selectedFilterDepartment = value;
-                                    selectedUser = null;
-                                    _selectedUserName = null;
-                                  });
-                                  if (value != null) {
-                                    await userProvider
-                                        .fetchUsersByDepartment(value);
-                                    setState(() {
-                                      filteredUsersByDept = userProvider.users;
-                                      selectedUser = null;
-                                      _selectedUserName = null;
-                                    });
-                                  } else {
-                                    setState(() {
-                                      filteredUsersByDept = [];
-                                    });
-                                  }
-                                },
-                              ),
-                            ),
-                            const SizedBox(width: 5),
-                            Expanded(
-                              child: DropdownButtonFormField<String>(
-                                initialValue: _selectedUserName,
-                                isExpanded: true,
-                                dropdownColor:
-                                    isDark ? colorScheme.surface : Colors.white,
-                                style: TextStyle(
-                                  color: isDark ? Colors.white : Colors.black87,
-                                ),
-                                decoration: InputDecoration(
-                                  labelText: 'مخصص للموظف',
-                                  labelStyle: TextStyle(
-                                    color: isDark
-                                        ? Colors.grey[400]
-                                        : Colors.grey[700],
-                                  ),
-                                  prefixIcon: Icon(
-                                    Icons.person,
-                                    color: colorScheme.primary,
-                                  ),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  filled: true,
-                                  fillColor: isDark
-                                      ? colorScheme.surface
-                                          .withValues(alpha: 0.5)
-                                      : Colors.white,
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 14,
-                                  ),
-                                ),
-                                items: [
-                                  ...usersNamesList.map((name) {
-                                    return DropdownMenuItem<String>(
-                                      value: name,
-                                      child: Text(name),
-                                    );
-                                  }),
-                                  const DropdownMenuItem<String>(
-                                    value: null,
-                                    child: Text('كل الموظفين'),
-                                  ),
-                                ],
-                                onChanged: (value) {
-                                  setState(() {
-                                    selectedUser = value;
-                                    _selectedUserName = value;
-                                  });
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                ? _buildFilterPanel(
+                    isDark, colorScheme, userProvider,
+                    appNames, usersNamesList, departmentsList,
                   )
                 : const SizedBox.shrink(),
           ),
@@ -785,9 +698,7 @@ class _TaskScreenState extends State<ManagerTaskScreen> {
               builder: (context, provider, child) {
                 if (provider.isLoading && provider.tasks.isEmpty) {
                   return Center(
-                    child: CircularProgressIndicator(
-                      color: colorScheme.primary,
-                    ),
+                    child: CircularProgressIndicator(color: colorScheme.primary),
                   );
                 }
 
@@ -796,11 +707,7 @@ class _TaskScreenState extends State<ManagerTaskScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(
-                          Icons.error_outline,
-                          size: 64,
-                          color: colorScheme.error,
-                        ),
+                        Icon(Icons.error_outline, size: 64, color: colorScheme.error),
                         const SizedBox(height: 16),
                         Text(
                           'Error: ${provider.error}',
@@ -812,9 +719,7 @@ class _TaskScreenState extends State<ManagerTaskScreen> {
                         ),
                         const SizedBox(height: 16),
                         ElevatedButton(
-                          onPressed: () {
-                            provider.fetchAllTasks();
-                          },
+                          onPressed: () => provider.fetchAllTasks(),
                           child: const Text('اعادة المحاولة'),
                         ),
                       ],
@@ -823,16 +728,14 @@ class _TaskScreenState extends State<ManagerTaskScreen> {
                 }
 
                 if (provider.tasks.isEmpty) {
-                  return EmptyStateWidget(
+                  return const EmptyStateWidget(
                     icon: Icons.task_outlined,
                     title: 'لا توجد مهام',
                   );
                 }
 
                 final filteredTasks = getFilteredTasks(provider.tasks)
-                    .where(
-                      (task) => task.taskStatus == true,
-                    )
+                    .where((task) => task.taskStatus == true)
                     .toList();
 
                 if (filteredTasks.isEmpty && hasActiveFilters) {
@@ -842,7 +745,7 @@ class _TaskScreenState extends State<ManagerTaskScreen> {
                     action: TextButton.icon(
                       onPressed: resetFilters,
                       icon: const Icon(Icons.clear_all),
-                      label: const Text('Clear Filters'),
+                      label: const Text('حذف التصفية'),
                     ),
                   );
                 }
@@ -854,25 +757,15 @@ class _TaskScreenState extends State<ManagerTaskScreen> {
                     children: [
                       if (hasActiveFilters)
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                           child: Row(
                             children: [
-                              Icon(
-                                Icons.info_outline,
-                                size: 16,
-                                color: colorScheme.primary,
-                              ),
+                              Icon(Icons.info_outline, size: 16, color: colorScheme.primary),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
                                   'إظهار ${filteredTasks.length} من ${provider.tasks.length} مهام',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: colorScheme.primary,
-                                  ),
+                                  style: TextStyle(fontSize: 14, color: colorScheme.primary),
                                 ),
                               ),
                             ],
@@ -887,8 +780,7 @@ class _TaskScreenState extends State<ManagerTaskScreen> {
                             return SharedTaskCard(
                               task: task,
                               isOverdue: task.expectedCompletionDate != null &&
-                                  task.expectedCompletionDate
-                                      .isBefore(DateTime.now()) &&
+                                  task.expectedCompletionDate.isBefore(DateTime.now()) &&
                                   task.taskStatus == true,
                             );
                           },
@@ -905,70 +797,160 @@ class _TaskScreenState extends State<ManagerTaskScreen> {
     );
   }
 
-  Future<void> _toggleTaskStatus(
-    dynamic task,
-    DailyTaskProvider provider,
-  ) async {
-    try {
-      final userProvider = context.read<UserProvider>();
-      final username = userProvider.currentUser?.username;
-      final taskId =
-          task.id is int ? task.id : int.tryParse(task.id.toString()) ?? 0;
-      final updatedTask = task.copyWith(taskStatus: !task.taskStatus);
-      await provider.updateTask(taskId, updatedTask);
-      if (username != null) {
-        await provider.fetchAllTasks();
-      }
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                Icon(
-                  task.taskStatus ? Icons.check_circle : Icons.info,
-                  color: Colors.white,
+  Widget _buildFilterPanel(
+    bool isDark,
+    ColorScheme colorScheme,
+    UserProvider userProvider,
+    List<String> appNames,
+    List<String> usersNamesList,
+    List<String> departmentsList,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? colorScheme.surface : Colors.grey[100],
+        boxShadow: [
+          BoxShadow(
+            color: isDark
+                ? Colors.black.withValues(alpha: 0.3)
+                : Colors.grey.withValues(alpha: 0.3),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'تخصيصات',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : Colors.black87,
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    task.taskStatus ? 'المهمة تم تعطيلها' : 'المهمة تم تفعيلها',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w500,
-                      fontFamily: 'Cairo',
+              ),
+              if (hasActiveFilters)
+                TextButton.icon(
+                  onPressed: resetFilters,
+                  icon: Icon(Icons.clear_all, size: 18, color: colorScheme.primary),
+                  label: Text('حذف التصفية', style: TextStyle(color: colorScheme.primary)),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildCompactDropdown<String>(
+                  isDark: isDark,
+                  colorScheme: colorScheme,
+                  label: 'التطبيق/الجهاز',
+                  icon: Icons.apps,
+                  value: selectedApp,
+                  items: [
+                    const DropdownMenuItem<String>(
+                      value: null,
+                      child: Text('كل التطبيقات'),
                     ),
+                    ...appNames.map((name) {
+                      return DropdownMenuItem<String>(value: name, child: Text(name));
+                    }),
+                  ],
+                  onChanged: (value) => setState(() => selectedApp = value),
+                ),
+              ),
+              const SizedBox(width: 5),
+              Expanded(
+                child: _buildCompactDropdown<bool?>(
+                  isDark: isDark,
+                  colorScheme: colorScheme,
+                  label: 'العمل عن بعد',
+                  icon: Icons.work,
+                  value: selectedIsRemote,
+                  items: const [
+                    DropdownMenuItem<bool?>(value: null, child: Text('الكل')),
+                    DropdownMenuItem<bool?>(value: true, child: Text('نعم')),
+                    DropdownMenuItem<bool?>(value: false, child: Text('لا')),
+                  ],
+                  onChanged: (value) => setState(() => selectedIsRemote = value),
+                ),
+              ),
+            ],
+          ),
+          if (_canFilterByDepartment) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildCompactDropdown<String>(
+                    isDark: isDark,
+                    colorScheme: colorScheme,
+                    label: 'الادارة',
+                    icon: Icons.business,
+                    value: selectedDepartment,
+                    items: [
+                      const DropdownMenuItem<String>(
+                        value: null,
+                        child: Text('كل الادارات'),
+                      ),
+                      ...departmentsList.map((dept) {
+                        return DropdownMenuItem<String>(value: dept, child: Text(dept));
+                      }),
+                    ],
+                    onChanged: (value) async {
+                      setState(() {
+                        selectedDepartment = value;
+                        selectedFilterDepartment = value;
+                        selectedUser = null;
+                        _selectedUserName = null;
+                      });
+                      if (value != null) {
+                        await userProvider.fetchUsersByDepartment(value);
+                        setState(() {
+                          filteredUsersByDept = userProvider.users;
+                          selectedUser = null;
+                          _selectedUserName = null;
+                        });
+                      } else {
+                        setState(() => filteredUsersByDept = []);
+                      }
+                    },
+                  ),
+                ),
+                const SizedBox(width: 5),
+                Expanded(
+                  child: _buildCompactDropdown<String>(
+                    isDark: isDark,
+                    colorScheme: colorScheme,
+                    label: 'مخصص للموظف',
+                    icon: Icons.person,
+                    value: _selectedUserName,
+                    items: [
+                      ...usersNamesList.map((name) {
+                        return DropdownMenuItem<String>(value: name, child: Text(name));
+                      }),
+                      const DropdownMenuItem<String>(
+                        value: null,
+                        child: Text('كل الموظفين'),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      setState(() {
+                        selectedUser = value;
+                        _selectedUserName = value;
+                      });
+                    },
                   ),
                 ),
               ],
             ),
-            backgroundColor: Colors.green.shade700,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.error_outline, color: Colors.white),
-                const SizedBox(width: 12),
-                Expanded(child: Text('Error updating task: ${e.toString()}')),
-              ],
-            ),
-            backgroundColor: Colors.red.shade700,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        );
-      }
-    }
+          ],
+        ],
+      ),
+    );
   }
 }

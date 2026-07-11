@@ -4,6 +4,7 @@ import 'package:tasks_app/common_widgets/resuable_widgets/reusable_toast.dart';
 import 'package:tasks_app/common_widgets/responsive/drawer_items.dart';
 import 'package:tasks_app/controller/theme_provider.dart';
 import 'package:tasks_app/controller/user_provider.dart';
+import 'package:tasks_app/dashboard/dashboard_screen.dart';
 import 'package:tasks_app/screens/about_app/manage_about_app_screen.dart';
 import 'package:tasks_app/screens/places/manage_place_screen.dart';
 import 'package:tasks_app/screens/preventive/preventive_item_screen.dart';
@@ -64,6 +65,12 @@ class _CustomDrawerState extends State<CustomDrawer>
     final currentUser = userProvider.currentUser;
 
     final items = [
+      DrawerItem(
+        index: 0,
+        icon: Icons.dashboard_rounded,
+        title: 'لوحة التحكم',
+        onTap: () => _navigateToScreen(const DashboardScreen(), 0),
+      ),
       DrawerItem(
         index: 1,
         icon: Icons.people_rounded,

@@ -31,6 +31,7 @@ class _PreventiveMaintenanceReportScreenState
     extends State<PreventiveMaintenanceReportScreen>
     with SingleTickerProviderStateMixin {
   final ConnectivityService _connectivity = ConnectivityService();
+  int _selectedDrawerIndex = 0;
 
   // ─── Filter state ─────────────────────────────────────────────────────────
   String? selectedUsername;
@@ -75,6 +76,16 @@ class _PreventiveMaintenanceReportScreenState
     selectedVisitPlace = 'الكل';
     selectedDepartment = 'الكل';
     selectedIsRemote = null;
+
+    // Read selected index from route arguments
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+      if (args != null && args['selectedIndex'] != null) {
+        setState(() {
+          _selectedDrawerIndex = args['selectedIndex'] as int;
+        });
+      }
+    });
 
     _animationController = AnimationController(
       vsync: this,
@@ -781,7 +792,7 @@ class _PreventiveMaintenanceReportScreenState
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     final isAdmin = userProvider.currentUser?.role == 'ADMIN' ||
         userProvider.currentUser?.role == 'MANAGER';
-    final selectedIndex = isAdmin ? 6 : 3;
+    final selectedIndex = _selectedDrawerIndex;
 
     return ResponsiveScaffold(
       topNavBar:

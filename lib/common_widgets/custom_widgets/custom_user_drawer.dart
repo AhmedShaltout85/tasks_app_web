@@ -4,6 +4,7 @@ import 'package:tasks_app/common_widgets/resuable_widgets/reusable_toast.dart';
 import 'package:tasks_app/common_widgets/responsive/drawer_items.dart';
 import 'package:tasks_app/controller/theme_provider.dart';
 import 'package:tasks_app/controller/user_provider.dart';
+import 'package:tasks_app/dashboard/dashboard_screen.dart';
 import 'package:tasks_app/screens/about_app/manage_about_app_screen.dart';
 import 'package:tasks_app/screens/preventive/preventive_item_screen.dart';
 import 'package:tasks_app/screens/preventive/manage_preventive_maintenance_screen.dart';
@@ -69,41 +70,47 @@ class _CustomDrawerState extends State<CustomUserDrawer>
     final items = [
       DrawerItem(
         index: 0,
-        icon: Icons.shield_outlined,
-        title: 'عناصر وقائية',
-        onTap: () => _navigateToScreen(const PreventiveItemScreen(), 0),
+        icon: Icons.dashboard_rounded,
+        title: 'لوحة التحكم',
+        onTap: () => _navigateToScreen(const DashboardScreen(), 0),
       ),
       DrawerItem(
         index: 1,
-        icon: Icons.assessment_rounded,
-        title: 'التقارير اليومية',
-        onTap: () => _navigateToScreen(const ReportScreen(), 1),
+        icon: Icons.shield_outlined,
+        title: 'عناصر وقائية',
+        onTap: () => _navigateToScreen(const PreventiveItemScreen(), 1),
       ),
       DrawerItem(
         index: 2,
-        icon: Icons.build_circle_outlined,
-        title: 'تقارير صيانة وقائية',
-        onTap: () =>
-            _navigateToScreen(const PreventiveMaintenanceReportScreen(), 2),
+        icon: Icons.assessment_rounded,
+        title: 'التقارير اليومية',
+        onTap: () => _navigateToScreen(const ReportScreen(), 2),
       ),
       DrawerItem(
         index: 3,
-        icon: Icons.add_circle_outline,
-        title: 'إضافة صيانة وقائية',
+        icon: Icons.build_circle_outlined,
+        title: 'تقارير صيانة وقائية',
         onTap: () =>
-            _navigateToScreen(const ManagePreventiveMaintenanceScreen(), 3),
+            _navigateToScreen(const PreventiveMaintenanceReportScreen(), 3),
       ),
       DrawerItem(
         index: 4,
-        icon: Icons.settings_rounded,
-        title: 'الضبط والاعدادات',
-        onTap: () => _navigateToScreen(const SettingsScreen(), 4),
+        icon: Icons.add_circle_outline,
+        title: 'إضافة صيانة وقائية',
+        onTap: () =>
+            _navigateToScreen(const ManagePreventiveMaintenanceScreen(), 4),
       ),
       DrawerItem(
         index: 5,
+        icon: Icons.settings_rounded,
+        title: 'الضبط والاعدادات',
+        onTap: () => _navigateToScreen(const SettingsScreen(), 5),
+      ),
+      DrawerItem(
+        index: 6,
         icon: Icons.info_outline_rounded,
         title: 'حول التطبيقات',
-        onTap: () => _navigateToScreen(const ManageAboutAppScreen(), 5),
+        onTap: () => _navigateToScreen(const ManageAboutAppScreen(), 6),
       ),
     ];
 

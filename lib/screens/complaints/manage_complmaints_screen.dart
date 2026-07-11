@@ -29,11 +29,20 @@ class ManageComplaintsScreen extends StatefulWidget {
 
 class _ManageComplaintsScreenState extends State<ManageComplaintsScreen> {
   final ConnectivityService _connectivityService = ConnectivityService.instance;
-  int _selectedDrawerIndex = 8;
+  int _selectedDrawerIndex = 9;
 
   @override
   void initState() {
     super.initState();
+    // Read selected index from route arguments
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+      if (args != null && args['selectedIndex'] != null) {
+        setState(() {
+          _selectedDrawerIndex = args['selectedIndex'] as int;
+        });
+      }
+    });
     _loadComplaints();
   }
 

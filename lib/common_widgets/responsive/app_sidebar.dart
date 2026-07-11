@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:tasks_app/common_widgets/responsive/drawer_items.dart';
 import 'package:tasks_app/controller/theme_provider.dart';
 import 'package:tasks_app/controller/user_provider.dart';
+import 'package:tasks_app/dashboard/dashboard_screen.dart';
 import 'package:tasks_app/screens/about_app/manage_about_app_screen.dart';
 import 'package:tasks_app/screens/complaints/manage_complmaints_screen.dart';
 import 'package:tasks_app/screens/places/manage_place_screen.dart';
@@ -75,6 +76,12 @@ List<DrawerItem> _buildAdminItems(BuildContext context, int selectedIndex) {
       title: 'شكاوى الموظفين',
       onTap: () => _navigateTo(context, const ManageComplaintsScreen(), 8),
     ),
+    DrawerItem(
+      index: 9,
+      icon: Icons.dashboard_rounded,
+      title: 'لوحة التحكم',
+      onTap: () => _navigateTo(context, const DashboardScreen(), 9),
+    ),
   ];
 }
 
@@ -124,13 +131,22 @@ List<DrawerItem> _buildUserItems(BuildContext context, int selectedIndex) {
       title: 'حول التطبيقات',
       onTap: () => _navigateTo(context, const ManageAboutAppScreen(), 6),
     ),
+    DrawerItem(
+      index: 7,
+      icon: Icons.dashboard_rounded,
+      title: 'لوحة التحكم',
+      onTap: () => _navigateTo(context, const DashboardScreen(), 7),
+    ),
   ];
 }
 
 void _navigateTo(BuildContext context, Widget screen, int index) {
   Navigator.pushReplacement(
     context,
-    MaterialPageRoute(builder: (context) => screen),
+    MaterialPageRoute(
+      builder: (context) => screen,
+      settings: RouteSettings(arguments: {'selectedIndex': index}),
+    ),
   );
 }
 

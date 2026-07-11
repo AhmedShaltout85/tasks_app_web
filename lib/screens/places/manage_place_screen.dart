@@ -25,6 +25,7 @@ class _ManagePlaceScreenState extends State<ManagePlaceScreen>
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   final ConnectivityService _connectivity = ConnectivityService();
+  int _selectedDrawerIndex = 0;
 
   @override
   void initState() {
@@ -38,6 +39,12 @@ class _ManagePlaceScreenState extends State<ManagePlaceScreen>
       curve: Curves.easeInOut,
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+      if (args != null && args['selectedIndex'] != null) {
+        setState(() {
+          _selectedDrawerIndex = args['selectedIndex'] as int;
+        });
+      }
       _fetchData();
     });
   }
@@ -333,7 +340,7 @@ class _ManagePlaceScreenState extends State<ManagePlaceScreen>
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     final isAdmin = userProvider.currentUser?.role == 'ADMIN' ||
         userProvider.currentUser?.role == 'MANAGER';
-    final selectedIndex = isAdmin ? 4 : 1;
+    final selectedIndex = _selectedDrawerIndex;
 
     return ResponsiveScaffold(
       topNavBar: buildRoleTopNavBar(context, selectedIndex),

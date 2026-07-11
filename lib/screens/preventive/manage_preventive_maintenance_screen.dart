@@ -32,11 +32,18 @@ class _ManagePreventiveMaintenanceScreenState
   bool _isRemote = false;
   final TextEditingController _subPlaceController =
       TextEditingController(text: 'لايوجد');
+  int _selectedDrawerIndex = 5;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+      if (args != null && args['selectedIndex'] != null) {
+        setState(() {
+          _selectedDrawerIndex = args['selectedIndex'] as int;
+        });
+      }
       _fetchData();
     });
   }
@@ -248,11 +255,12 @@ class _ManagePreventiveMaintenanceScreenState
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final selectedIndex = _selectedDrawerIndex;
     return ResponsiveScaffold(
-      topNavBar: buildRoleTopNavBar(context, 4),
+      topNavBar: buildRoleTopNavBar(context, selectedIndex),
       sidebarContent: buildAppSidebar(
         context: context,
-        selectedIndex: 4,
+        selectedIndex: selectedIndex,
       ),
       appBar: AppBar(
         leading: const SizedBox.shrink(),
