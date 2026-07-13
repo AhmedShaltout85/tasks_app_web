@@ -11,6 +11,8 @@ import '../utils/jwt_helper.dart';
 import '../utils/web_helper/web_helper.dart';
 import 'local_control/cache_helper.dart';
 
+enum RefreshResult { success, rejected, transient }
+
 class UserProvider with ChangeNotifier, WidgetsBindingObserver {
   final ApiNetworkUserReposImpl _api = ApiNetworkUserReposImpl();
 
@@ -24,6 +26,7 @@ class UserProvider with ChangeNotifier, WidgetsBindingObserver {
   String? _refreshToken;
   DateTime? _tokenExpiry;
   StreamSubscription<void>? _focusSubscription;
+  bool _resumeCheckInProgress = false;
 
   UserProvider() {
     WidgetsBinding.instance.addObserver(this);
@@ -48,14 +51,33 @@ class UserProvider with ChangeNotifier, WidgetsBindingObserver {
 
   Future<void> _checkTokenOnResume() async {
     if (_token == null || _tokenExpiry == null) return;
+    if (_resumeCheckInProgress) {
+      log('Resume check already in progress, skipping duplicate trigger');
+      return;
+    }
+    _resumeCheckInProgress = true;
+    try {
+      await _doCheckTokenOnResume();
+    } finally {
+      _resumeCheckInProgress = false;
+    }
+  }
+
+  Future<void> _doCheckTokenOnResume() async {
+    if (_token == null || _tokenExpiry == null) return;
 
     if (_tokenExpiry!.isBefore(DateTime.now())) {
       log('Token expired while app was inactive, attempting refresh on resume...');
       if (_refreshToken != null) {
-        final refreshed = await _attemptRefreshOnStartup();
-        if (refreshed) {
+        final result = await _attemptRefreshOnStartup();
+        if (result == RefreshResult.success) {
           log('Token refreshed successfully on resume');
           await _restoreCachedUser();
+          return;
+        }
+        if (result == RefreshResult.rejected) {
+          log('Refresh token rejected on resume, clearing session');
+          await clearUserData();
           return;
         }
         // Transient failure — DioClient periodic timer will retry
@@ -127,13 +149,22 @@ class UserProvider with ChangeNotifier, WidgetsBindingObserver {
         if (_tokenExpiry!.isBefore(DateTime.now())) {
           log('Access token expired, attempting refresh on startup...');
           if (_refreshToken != null) {
-            final refreshed = await _attemptRefreshOnStartup();
-            if (refreshed) {
+            final result = await _attemptRefreshOnStartup();
+            if (result == RefreshResult.success) {
               log('Token refreshed successfully on startup');
               await _restoreCachedUser();
               return;
             }
-            log('Token refresh failed on startup, clearing all tokens');
+            if (result == RefreshResult.rejected) {
+              log('Refresh token rejected by server on startup, clearing session');
+              await clearUserData();
+              return;
+            }
+            // Transient error: keep tokens, start periodic timer for retries
+            log('Startup refresh failed (transient), keeping session — periodic timer will retry');
+            DioClient().scheduleTokenRefresh(_token!);
+            await _restoreCachedUser();
+            return;
           } else {
             log('No refresh token available, clearing tokens');
           }
@@ -167,15 +198,15 @@ class UserProvider with ChangeNotifier, WidgetsBindingObserver {
     }
   }
 
-  Future<bool> _attemptRefreshOnStartup() async {
-    if (_refreshToken == null) return false;
+  Future<RefreshResult> _attemptRefreshOnStartup() async {
+    if (_refreshToken == null) return RefreshResult.rejected;
     try {
       final response = await _api.refreshToken(refreshToken: _refreshToken!);
 
       final newAccessToken = response['token'] as String?;
       final newRefreshToken = response['refreshToken'] as String?;
 
-      if (newAccessToken == null) return false;
+      if (newAccessToken == null) return RefreshResult.rejected;
 
       _token = newAccessToken;
       _api.setToken(newAccessToken);
@@ -195,10 +226,17 @@ class UserProvider with ChangeNotifier, WidgetsBindingObserver {
         DioClient().scheduleTokenRefresh(newAccessToken);
       }
 
-      return true;
+      return RefreshResult.success;
+    } on DioException catch (e) {
+      final statusCode = e.response?.statusCode;
+      log('Refresh on startup failed: status=$statusCode, error: $e');
+      if (statusCode == 401 || statusCode == 403) {
+        return RefreshResult.rejected;
+      }
+      return RefreshResult.transient;
     } catch (e) {
-      log('Refresh on startup failed: $e');
-      return false;
+      log('Refresh on startup failed (non-Dio): $e');
+      return RefreshResult.transient;
     }
   }
 
@@ -250,6 +288,7 @@ class UserProvider with ChangeNotifier, WidgetsBindingObserver {
     _error = null;
     _api.clearToken();
     _api.clearRefreshToken();
+    DioClient().cancelTimer();
     await _clearTokenFromCache();
     notifyListeners();
   }
@@ -314,6 +353,15 @@ class UserProvider with ChangeNotifier, WidgetsBindingObserver {
       );
       log('SignIn response: $response');
       _token = response['token'];
+
+      // Validate token structure before using
+      if (_token == null || JwtHelper.extractExpiry(_token!) == null) {
+        log('Server returned malformed token, sign-in failed');
+        _error = 'Invalid server response';
+        _token = null;
+        return;
+      }
+
       _api.setToken(_token!);
 
       if (response['refreshToken'] != null) {
@@ -370,6 +418,7 @@ class UserProvider with ChangeNotifier, WidgetsBindingObserver {
     _currentUser = null;
     _users = [];
     _error = null;
+    DioClient().cancelTimer();
     await _clearTokenFromCache();
     notifyListeners();
   }

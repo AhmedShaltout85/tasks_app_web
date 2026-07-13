@@ -170,6 +170,7 @@ class DioClient {
 
       await _onTokensRefreshed?.call(
           newAccessToken, newRefreshToken, expiryDateTime);
+      scheduleTokenRefresh(newAccessToken);
       log('Proactive token refresh successful');
     } catch (e) {
       log('Proactive refresh failed: $e');
@@ -302,8 +303,13 @@ class DioClient {
     }
   }
 
-  void dispose() {
+  void cancelTimer() {
     _periodicTimer?.cancel();
+    _periodicTimer = null;
+  }
+
+  void dispose() {
+    cancelTimer();
   }
 }
 
