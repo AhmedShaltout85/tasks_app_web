@@ -6,6 +6,7 @@ import 'package:tasks_app/screens/login/login_screen.dart';
 import 'package:tasks_app/screens/task/task_screen.dart';
 import 'package:tasks_app/screens/task/user_task_screen.dart';
 import 'package:tasks_app/screens/task/manager_task_screen.dart';
+import 'package:tasks_app/utils/auth_status.dart';
 
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
@@ -24,8 +25,6 @@ class AuthWrapper extends StatelessWidget {
       builder: (context, userProvider, child) {
         final token = userProvider.token;
 
-        // Only show loading on initial load (before we know if user has token or not)
-        // Don't block UI when fetching additional data for TaskScreen
         if (userProvider.isInitializing) {
           log('AuthWrapper - isInitializing: true, showing loading');
           return const Scaffold(
@@ -33,29 +32,66 @@ class AuthWrapper extends StatelessWidget {
           );
         }
 
-        // If no token, show login screen (don't need to wait for anything)
         if (token == null || token.isEmpty) {
           log('AuthWrapper - No token, showing LoginScreen');
           return const LoginScreen();
         }
 
-        // Token exists - user is logged in
-        // Even if isUsersLoading is true, we should show the screen (not loading indicator)
-        // because user is already authenticated
         final currentUser = userProvider.currentUser;
         final role = currentUser?.role;
         log('AuthWrapper - Token exists, role: $role, isUsersLoading: ${userProvider.isUsersLoading}');
 
+        Widget screen;
         if (_isManagerUser(role)) {
           log('AuthWrapper - Manager user, showing ManagerTaskScreen');
-          return const ManagerTaskScreen();
+          screen = const ManagerTaskScreen();
         } else if (_isAdminUser(role)) {
           log('AuthWrapper - Admin user, showing TaskScreen');
-          return const TaskScreen();
+          screen = const TaskScreen();
         } else {
           log('AuthWrapper - Regular user, showing UserTaskScreen');
-          return const UserTaskScreen();
+          screen = const UserTaskScreen();
         }
+
+        if (userProvider.authStatus == AuthStatus.refreshing) {
+          return Stack(
+            children: [
+              screen,
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: Material(
+                  color: Colors.transparent,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                    color: Colors.black87,
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        ),
+                        SizedBox(width: 10),
+                        Text(
+                          'Refreshing session...',
+                          style: TextStyle(color: Colors.white, fontSize: 13),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          );
+        }
+
+        return screen;
       },
     );
   }

@@ -7,6 +7,7 @@ import 'package:tasks_app/controller/local_control/cache_helper.dart';
 import 'package:tasks_app/controller/preventive_provider.dart';
 import 'package:tasks_app/controller/theme_provider.dart';
 import 'package:tasks_app/controller/user_provider.dart';
+import 'package:tasks_app/utils/auth_status.dart';
 import 'package:tasks_app/controller/place_name_provider.dart';
 import 'package:tasks_app/controller/daily_task_provider.dart';
 import 'package:tasks_app/controller/about_app_provider.dart';
@@ -51,6 +52,48 @@ void main() async {
   );
 }
 
+class _AuthStatusOverlay extends StatelessWidget {
+  final Widget child;
+  const _AuthStatusOverlay({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<UserProvider>(
+      builder: (context, user, _) {
+        return Stack(
+          children: [
+            child,
+            if (user.authStatus == AuthStatus.refreshing)
+              const Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: SizedBox(
+                  height: 2,
+                  child: LinearProgressIndicator(minHeight: 2),
+                ),
+              ),
+            if (user.authStatus == AuthStatus.expiring)
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: SizedBox(
+                  height: 2,
+                  child: LinearProgressIndicator(
+                    minHeight: 2,
+                    backgroundColor: Colors.amber.withValues(alpha: 0.3),
+                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.amber),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -67,7 +110,7 @@ class MyApp extends StatelessWidget {
               theme: themeProvider.themeMode == ThemeMode.dark
                   ? AppTheme.darkTheme
                   : AppTheme.lightTheme,
-              home: const SplashScreen(),
+              home: _AuthStatusOverlay(child: const SplashScreen()),
               routes: {
                 AppRoute.loginRouteName: (context) => const LoginScreen(),
                 AppRoute.signupRouteName: (context) => const SignUpScreen(),

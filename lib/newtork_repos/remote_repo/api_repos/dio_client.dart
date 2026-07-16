@@ -1,22 +1,25 @@
 import 'dart:async';
 import 'dart:collection';
 import 'dart:developer';
+import 'dart:js_interop';
+import 'dart:js_interop_unsafe';
 
 import 'package:dio/dio.dart';
+import 'package:web/web.dart' as web;
 
+import '../../../services/auth_state_manager.dart';
+import '../../../utils/auth_status.dart';
 import '../../../utils/jwt_helper.dart';
+import '../../../utils/web_helper/web_helper.dart';
 
 typedef OnTokensRefreshed = Future<void> Function(
     String newAccessToken, String newRefreshToken, DateTime? newExpiry);
 typedef OnSessionExpired = Future<void> Function();
 
 class DioClient {
-  // static const String _baseUrl = 'http://localhost:9999/tasks-api/api'; //LOCALHOST(LOCAL_SERVER)
-  // static const String _baseUrl = 'http://172.18.0.101:9999/tasks-api/api'; //LOCALHOST(ONLINE_SERVER)
   static const String _baseUrl =
-      'http://41.33.226.211:8099/tasks-api/api'; //PUBLIC_SERVER(PUBLIC_ONLINE_SERVER)
+      'http://41.33.226.211:8099/tasks-api/api';
   static const Duration _refreshBuffer = Duration(seconds: 60);
-  static const Duration _pollInterval = Duration(minutes: 5);
 
   static final DioClient instance = DioClient._();
   late final Dio _dio;
@@ -26,6 +29,17 @@ class DioClient {
   bool _isRefreshing = false;
   Timer? _periodicTimer;
   final Queue<_PendingRequest> _pendingRequests = Queue();
+  late final AuthStateManager _authState = AuthStateManager.instance;
+
+  StreamSubscription<void>? _focusSub;
+  StreamSubscription<void>? _visibilitySub;
+  web.BroadcastChannel? _authChannel;
+  web.BroadcastChannel? _leaderChannel;
+  bool _isLeader = false;
+  String _leaderId = DateTime.now().millisecondsSinceEpoch.toRadixString(36) +
+      (DateTime.now().microsecond % 1000).toString().padLeft(3, '0');
+  DateTime _lastLeaderPingReceived = DateTime.fromMillisecondsSinceEpoch(0);
+  Timer? _leaderPingTimer;
 
   OnTokensRefreshed? _onTokensRefreshed;
   OnSessionExpired? _onSessionExpired;
@@ -46,10 +60,11 @@ class DioClient {
     ));
 
     _dio.interceptors.add(InterceptorsWrapper(
-      onRequest: (options, handler) {
+      onRequest: (options, handler) async {
         log('REQUEST: ${options.method} ${options.path}');
         log('DATA: ${options.data}');
         if (_token != null && !_isAuthEndpoint(options.path)) {
+          await _preemptiveRefreshIfNeeded();
           options.headers['Authorization'] = 'Bearer $_token';
           log('TOKEN ADDED: Bearer $_token');
         } else if (_isAuthEndpoint(options.path)) {
@@ -76,12 +91,13 @@ class DioClient {
         return handler.next(error);
       },
     ));
+
+    _initCrossTabSync();
   }
 
   factory DioClient() => instance;
 
   Dio get dio => _dio;
-
   Dio get dioForRefresh => _dioForRefresh;
 
   void setCallbacks({
@@ -93,22 +109,28 @@ class DioClient {
   }
 
   void setToken(String token) => _token = token;
-
   void clearToken() => _token = null;
-
   String? get token => _token;
 
   void setRefreshToken(String refreshToken) => _refreshToken = refreshToken;
-
   void clearRefreshToken() => _refreshToken = null;
-
   String? get refreshToken => _refreshToken;
 
   bool _isAuthEndpoint(String path) {
     return path == '/auth/signin' || path == '/auth/refresh-token';
   }
 
-  // --- Proactive Token Refresh ---
+  // --- Smart Polling ---
+
+  Duration _calculatePollInterval(DateTime expiry) {
+    final remaining = expiry.difference(DateTime.now());
+    if (remaining.isNegative) return Duration.zero;
+    if (remaining.inHours > 6) return const Duration(minutes: 30);
+    if (remaining.inHours > 1) return const Duration(minutes: 10);
+    if (remaining.inMinutes > 10) return const Duration(minutes: 5);
+    if (remaining.inMinutes > 1) return const Duration(minutes: 1);
+    return Duration.zero;
+  }
 
   void scheduleTokenRefresh(String token) {
     _periodicTimer?.cancel();
@@ -119,84 +141,113 @@ class DioClient {
       return;
     }
 
-    log('Starting periodic token refresh checks (every ${_pollInterval.inMinutes}min)');
-    _periodicTimer = Timer.periodic(_pollInterval, (_) => _checkAndRefresh());
+    final expiryDateTime = DateTime.fromMillisecondsSinceEpoch(expiry * 1000);
+    final interval = _calculatePollInterval(expiryDateTime);
+    final remainingMin = expiryDateTime.difference(DateTime.now()).inMinutes;
+    log('Token valid for ${remainingMin}min, next poll in ${interval.inMinutes}min');
 
-    // Also do an immediate check (catches already-expired tokens)
-    _checkAndRefresh();
+    if (interval == Duration.zero) {
+      _checkAndRefresh();
+      return;
+    }
+
+    _periodicTimer = Timer(interval, () {
+      _checkAndRefresh();
+      if (_token != null) scheduleTokenRefresh(_token!);
+    });
+  }
+
+  Future<void> _preemptiveRefreshIfNeeded() async {
+    if (_token == null || _isRefreshing) return;
+    final expiry = JwtHelper.extractExpiry(_token!);
+    if (expiry == null) return;
+    final expiryDateTime = DateTime.fromMillisecondsSinceEpoch(expiry * 1000);
+    final remaining = expiryDateTime.difference(DateTime.now());
+    if (remaining < _refreshBuffer) {
+      log('Token in buffer zone, preemptive refresh');
+      _authState.emitStatus(AuthStatus.expiring);
+      await _proactiveRefresh();
+    }
   }
 
   Future<void> _checkAndRefresh() async {
     if (_refreshToken == null || _isRefreshing || _token == null) return;
-
+    if (_authState.isSessionExpired()) {
+      log('Session exceeded max lifetime, clearing');
+      _token = null;
+      _refreshToken = null;
+      _periodicTimer?.cancel();
+      _broadcastExpired();
+      await _onSessionExpired?.call();
+      return;
+    }
     final expiry = JwtHelper.extractExpiry(_token!);
     if (expiry == null) return;
-
     final expiryDateTime = DateTime.fromMillisecondsSinceEpoch(expiry * 1000);
-    final now = DateTime.now();
-
-    // Refresh if within buffer window or already expired
-    if (expiryDateTime.difference(now) < _refreshBuffer) {
-      log('Token approaching expiry, initiating proactive refresh');
+    final remaining = expiryDateTime.difference(DateTime.now());
+    if (remaining < _refreshBuffer) {
+      log('Periodic check: token in buffer zone, refreshing');
+      _authState.emitStatus(AuthStatus.expiring);
       await _proactiveRefresh();
     }
   }
 
   Future<void> _proactiveRefresh() async {
     if (_refreshToken == null || _isRefreshing) return;
-
+    if (_authState.isSessionExpired()) {
+      log('Session exceeded max lifetime, refusing proactive refresh');
+      _token = null;
+      _refreshToken = null;
+      _periodicTimer?.cancel();
+      _broadcastExpired();
+      await _onSessionExpired?.call();
+      return;
+    }
     _isRefreshing = true;
+    _authState.emitStatus(AuthStatus.refreshing);
     try {
-      log('Proactive token refresh triggered');
       final response = await _dioForRefresh.post('/auth/refresh-token', data: {
         'refreshToken': _refreshToken,
       });
-
       final data = response.data;
       final newAccessToken = data['token'] as String?;
       final newRefreshToken = data['refreshToken'] as String?;
-
       if (newAccessToken == null || newRefreshToken == null) {
         throw Exception('Invalid refresh response: missing tokens');
       }
-
       _token = newAccessToken;
       _refreshToken = newRefreshToken;
-
       final newExpiry = JwtHelper.extractExpiry(newAccessToken);
       final expiryDateTime = newExpiry != null
           ? DateTime.fromMillisecondsSinceEpoch(newExpiry * 1000)
           : null;
-
       await _onTokensRefreshed?.call(
           newAccessToken, newRefreshToken, expiryDateTime);
       scheduleTokenRefresh(newAccessToken);
+      _broadcastTokens(newAccessToken, newRefreshToken);
+      _authState.emitStatus(AuthStatus.refreshed);
       log('Proactive token refresh successful');
-    } catch (e) {
-      log('Proactive refresh failed: $e');
-
-      // If the server explicitly rejected the refresh token, clear session
-      if (e is DioException) {
-        final statusCode = e.response?.statusCode;
-        if (statusCode == 401 || statusCode == 403) {
-          log('Refresh token rejected by server (status $statusCode), clearing session');
-          _token = null;
-          _refreshToken = null;
-          _periodicTimer?.cancel();
-          await _onSessionExpired?.call();
-          _isRefreshing = false;
-          return;
-        }
+    } on DioException catch (e) {
+      log('Proactive refresh failed: ${e.response?.statusCode}');
+      if (e.response?.statusCode == 401 || e.response?.statusCode == 403) {
+        log('Refresh token rejected by server, clearing session');
+        _token = null;
+        _refreshToken = null;
+        _periodicTimer?.cancel();
+        await _onSessionExpired?.call();
+        return;
       }
-
-      // Transient error (network, timeout, 5xx) — periodic timer will retry
+      _authState.emitStatus(AuthStatus.transientError);
       log('Transient refresh error, will retry on next periodic check');
+    } catch (e) {
+      log('Proactive refresh unexpected error: $e');
+      _authState.emitStatus(AuthStatus.transientError);
     } finally {
       _isRefreshing = false;
     }
   }
 
-  // --- Reactive Token Refresh (401/403 handler) ---
+  // --- Reactive Token Refresh ---
 
   Future<void> _handleTokenRefresh(
       DioException error, ErrorInterceptorHandler handler) async {
@@ -205,42 +256,36 @@ class DioClient {
       _pendingRequests.add(_PendingRequest(error, handler, completer));
       return completer.future;
     }
-
     if (_refreshToken == null) {
       log('No refresh token available, session expired');
       await _onSessionExpired?.call();
       return handler.next(error);
     }
-
     _isRefreshing = true;
+    _authState.emitStatus(AuthStatus.refreshing);
     try {
-      log('Access token expired, attempting refresh...');
       final response = await _dioForRefresh.post('/auth/refresh-token', data: {
         'refreshToken': _refreshToken,
       });
-
       final data = response.data;
       final newAccessToken = data['token'] as String?;
       final newRefreshToken = data['refreshToken'] as String?;
-
       if (newAccessToken == null || newRefreshToken == null) {
         throw Exception('Invalid refresh response: missing tokens');
       }
-
       _token = newAccessToken;
       _refreshToken = newRefreshToken;
       log('Token refresh successful');
-
       final newExpiry = JwtHelper.extractExpiry(newAccessToken);
       final expiryDateTime = newExpiry != null
           ? DateTime.fromMillisecondsSinceEpoch(newExpiry * 1000)
           : null;
-
       await _onTokensRefreshed?.call(
           newAccessToken, newRefreshToken, expiryDateTime);
       scheduleTokenRefresh(newAccessToken);
+      _broadcastTokens(newAccessToken, newRefreshToken);
+      _authState.emitStatus(AuthStatus.refreshed);
 
-      // Retry the original failed request
       try {
         error.requestOptions.headers['Authorization'] = 'Bearer $_token';
         final retryResponse = await _dio.fetch(error.requestOptions);
@@ -249,7 +294,6 @@ class DioClient {
         handler.next(e);
       }
 
-      // Complete all queued requests (with guard against infinite loop)
       final pendingCount = _pendingRequests.length;
       var processedCount = 0;
       while (_pendingRequests.isNotEmpty && processedCount < pendingCount) {
@@ -266,22 +310,19 @@ class DioClient {
         pending.completer.complete();
       }
     } on DioException catch (e) {
-      final refreshStatusCode = e.response?.statusCode;
-      log('Token refresh failed - DioException: status=$refreshStatusCode, data=${e.response?.data}');
-
-      // Only destroy session if server explicitly rejected the refresh token
-      if (refreshStatusCode == 401 || refreshStatusCode == 403) {
-        log('Refresh token rejected by server, clearing session');
+      final statusCode = e.response?.statusCode;
+      log('Token refresh failed: status=$statusCode');
+      if (statusCode == 401 || statusCode == 403) {
+        log('Refresh token rejected, clearing session');
         _token = null;
         _refreshToken = null;
         _periodicTimer?.cancel();
+        _broadcastExpired();
         await _onSessionExpired?.call();
       } else {
-        // Transient error (network, timeout, 5xx) — don't destroy session
-        // Periodic timer will retry in background; next API call will try again
+        _authState.emitStatus(AuthStatus.transientError);
         log('Transient refresh error, keeping session alive');
       }
-
       while (_pendingRequests.isNotEmpty) {
         final pending = _pendingRequests.removeFirst();
         pending.handler.next(pending.error);
@@ -289,9 +330,8 @@ class DioClient {
       }
       return handler.next(error);
     } catch (e) {
-      log('Token refresh failed - Unexpected error: $e');
-      log('Unexpected refresh error, keeping session alive');
-
+      log('Token refresh unexpected error: $e');
+      _authState.emitStatus(AuthStatus.transientError);
       while (_pendingRequests.isNotEmpty) {
         final pending = _pendingRequests.removeFirst();
         pending.handler.next(pending.error);
@@ -303,6 +343,167 @@ class DioClient {
     }
   }
 
+  // --- Cross-Tab Sync ---
+
+  void _initCrossTabSync() {
+    _focusSub = onWindowFocus(() {
+      if (_isLeader) return;
+      _checkLeadership();
+    });
+    _visibilitySub = onVisibilityChange((visible) {
+      if (visible && !_isLeader) _checkLeadership();
+    });
+    _setupChannels();
+    _startLeaderElection();
+  }
+
+  void _setupChannels() {
+    try {
+      _authChannel = web.BroadcastChannel('auth_tokens');
+      _authChannel!.onmessage = ((JSObject event) {
+        try {
+          final dataProp = event.getProperty('data'.toJS);
+          if (dataProp != null && !dataProp.isNull && !dataProp.isUndefined) {
+            final str = (dataProp as JSString).toDart;
+            _handleBroadcastMessage(str);
+          }
+        } catch (e) {
+          log('Error handling auth broadcast: $e');
+        }
+      }).toJS;
+    } catch (e) {
+      log('Auth BroadcastChannel not available: $e');
+    }
+
+    try {
+      _leaderChannel = web.BroadcastChannel('auth_leader');
+      _leaderChannel!.onmessage = ((JSObject event) {
+        try {
+          final dataProp = event.getProperty('data'.toJS);
+          if (dataProp != null && !dataProp.isNull && !dataProp.isUndefined) {
+            final str = (dataProp as JSString).toDart;
+            _onLeaderMessage(str);
+          }
+        } catch (e) {
+          log('Error handling leader broadcast: $e');
+        }
+      }).toJS;
+    } catch (e) {
+      log('Leader BroadcastChannel not available: $e');
+    }
+  }
+
+  void _handleBroadcastMessage(String message) {
+    if (_isLeader) return;
+    final parts = message.split('|');
+    if (parts.isEmpty) return;
+
+    if (parts[0] == 'TOKENS' && parts.length >= 3) {
+      final newAccess = parts[1];
+      final newRefresh = parts[2];
+      if (newAccess != _token) {
+        log('Received new tokens from leader tab');
+        _token = newAccess;
+        _refreshToken = newRefresh;
+        _onTokensRefreshed?.call(newAccess, newRefresh, null);
+        if (newAccess.isNotEmpty) {
+          scheduleTokenRefresh(newAccess);
+        }
+      }
+    } else if (parts[0] == 'EXPIRED') {
+      log('Leader tab reported session expired');
+      _token = null;
+      _refreshToken = null;
+      _periodicTimer?.cancel();
+      _onSessionExpired?.call();
+    }
+  }
+
+  void _onLeaderMessage(String message) {
+    final parts = message.split('|');
+    if (parts.isEmpty) return;
+
+    if (parts[0] == 'LEADER_PING') {
+      final remoteId = parts.length > 1 ? parts[1] : '';
+      _lastLeaderPingReceived = DateTime.now();
+
+      if (_isLeader && remoteId != _leaderId) {
+        if (remoteId.compareTo(_leaderId) < 0) {
+          log('Yielding leadership to tab $remoteId (lower ID)');
+          _isLeader = false;
+          _leaderPingTimer?.cancel();
+        }
+      }
+    }
+  }
+
+  void _broadcastTokens(String access, String refresh) {
+    if (!_isLeader || _authChannel == null) return;
+    try {
+      _authChannel!.postMessage('TOKENS|$access|$refresh'.toJS);
+    } catch (e) {
+      log('Failed to broadcast tokens: $e');
+    }
+  }
+
+  void _broadcastExpired() {
+    if (!_isLeader || _authChannel == null) return;
+    try {
+      _authChannel!.postMessage('EXPIRED'.toJS);
+    } catch (e) {
+      log('Failed to broadcast expired: $e');
+    }
+  }
+
+  void _startLeaderElection() {
+    if (_leaderChannel == null) return;
+
+    Timer(const Duration(seconds: 10), () {
+      if (_isLeader) return;
+      if (_lastLeaderPingReceived == DateTime.fromMillisecondsSinceEpoch(0)) {
+        log('No existing leader heard after grace period, claiming leadership');
+        _claimLeadership();
+      }
+    });
+
+    Timer.periodic(const Duration(seconds: 30), (_) {
+      if (!_isLeader &&
+          DateTime.now().difference(_lastLeaderPingReceived) >
+              const Duration(seconds: 30)) {
+        log('No leader ping for 30s, claiming leadership');
+        _claimLeadership();
+      }
+    });
+  }
+
+  void _claimLeadership() {
+    if (_isLeader) return;
+    _isLeader = true;
+    log('Tab $_leaderId is now the leader');
+    _sendLeaderPing();
+    _leaderPingTimer?.cancel();
+    _leaderPingTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+      _sendLeaderPing();
+    });
+  }
+
+  void _sendLeaderPing() {
+    if (_leaderChannel == null) return;
+    try {
+      _leaderChannel!.postMessage('LEADER_PING|$_leaderId'.toJS);
+    } catch (e) {
+      log('Failed to send leader ping: $e');
+    }
+  }
+
+  void _checkLeadership() {
+    if (_leaderChannel == null || _isLeader) return;
+    if (DateTime.now().difference(_lastLeaderPingReceived) >
+        const Duration(seconds: 30)) {
+      _claimLeadership();
+    }
+  }
+
   void cancelTimer() {
     _periodicTimer?.cancel();
     _periodicTimer = null;
@@ -310,6 +511,11 @@ class DioClient {
 
   void dispose() {
     cancelTimer();
+    _leaderPingTimer?.cancel();
+    _focusSub?.cancel();
+    _visibilitySub?.cancel();
+    _authChannel?.close();
+    _leaderChannel?.close();
   }
 }
 
@@ -317,6 +523,5 @@ class _PendingRequest {
   final DioException error;
   final ErrorInterceptorHandler handler;
   final Completer<void> completer;
-
   _PendingRequest(this.error, this.handler, this.completer);
 }

@@ -1,20 +1,21 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
-import 'dart:async';
-import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 
 import '../models/user_model.dart';
 import '../newtork_repos/remote_repo/api_repos/api_network_user_repos_impl.dart';
 import '../newtork_repos/remote_repo/api_repos/dio_client.dart';
+import '../services/auth_state_manager.dart';
+import '../utils/auth_status.dart';
 import '../utils/jwt_helper.dart';
 import '../utils/web_helper/web_helper.dart';
 import 'local_control/cache_helper.dart';
 
-enum RefreshResult { success, rejected, transient }
-
 class UserProvider with ChangeNotifier, WidgetsBindingObserver {
   final ApiNetworkUserReposImpl _api = ApiNetworkUserReposImpl();
+  final AuthStateManager _auth = AuthStateManager.instance;
 
   UserModel? _currentUser;
   List<UserModel> _users = [];
@@ -22,22 +23,23 @@ class UserProvider with ChangeNotifier, WidgetsBindingObserver {
   bool _isInitializing = true;
   bool _isUsersLoading = false;
   String? _error;
-  String? _token;
-  String? _refreshToken;
-  DateTime? _tokenExpiry;
+  AuthStatus _authStatus = AuthStatus.authenticated;
   StreamSubscription<void>? _focusSubscription;
+  StreamSubscription<AuthStatus>? _statusSubscription;
   bool _resumeCheckInProgress = false;
 
   UserProvider() {
     WidgetsBinding.instance.addObserver(this);
     _setupCallbacks();
     _setupWebFocusListener();
+    _listenToAuthStatus();
     _init();
   }
 
   @override
   void dispose() {
     _focusSubscription?.cancel();
+    _statusSubscription?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -49,47 +51,55 @@ class UserProvider with ChangeNotifier, WidgetsBindingObserver {
     }
   }
 
+  void _listenToAuthStatus() {
+    _statusSubscription = _auth.statusStream.listen((status) {
+      _authStatus = status;
+      if (status == AuthStatus.expired) {
+        _currentUser = null;
+        _users = [];
+        notifyListeners();
+      } else if (status == AuthStatus.refreshed) {
+        _loadCurrentUserFromCache();
+        notifyListeners();
+      } else {
+        notifyListeners();
+      }
+    });
+  }
+
   Future<void> _checkTokenOnResume() async {
-    if (_token == null || _tokenExpiry == null) return;
     if (_resumeCheckInProgress) {
       log('Resume check already in progress, skipping duplicate trigger');
       return;
     }
     _resumeCheckInProgress = true;
     try {
-      await _doCheckTokenOnResume();
-    } finally {
-      _resumeCheckInProgress = false;
-    }
-  }
-
-  Future<void> _doCheckTokenOnResume() async {
-    if (_token == null || _tokenExpiry == null) return;
-
-    if (_tokenExpiry!.isBefore(DateTime.now())) {
-      log('Token expired while app was inactive, attempting refresh on resume...');
-      if (_refreshToken != null) {
-        final result = await _attemptRefreshOnStartup();
+      if (!_auth.isAuthenticated) return;
+      final expiry = _auth.tokenExpiry;
+      if (expiry == null) return;
+      if (expiry.isBefore(DateTime.now())) {
+        log('Token expired while app was inactive, attempting refresh on resume...');
+        final result = await _auth.attemptRefresh();
         if (result == RefreshResult.success) {
           log('Token refreshed successfully on resume');
           await _restoreCachedUser();
-          return;
-        }
-        if (result == RefreshResult.rejected) {
+        } else if (result == RefreshResult.rejected) {
           log('Refresh token rejected on resume, clearing session');
           await clearUserData();
-          return;
+        } else {
+          log('Refresh on resume failed (transient), periodic timer will retry');
+          if (_auth.token != null) {
+            DioClient().scheduleTokenRefresh(_auth.token!);
+          }
         }
-        // Transient failure — DioClient periodic timer will retry
-        log('Refresh on resume failed (transient), periodic timer will retry');
-        DioClient().scheduleTokenRefresh(_token!);
       } else {
-        log('No refresh token available on resume, clearing session');
-        await clearUserData();
+        log('Token still valid on resume, rescheduling proactive refresh');
+        if (_auth.token != null) {
+          DioClient().scheduleTokenRefresh(_auth.token!);
+        }
       }
-    } else {
-      log('Token still valid on resume, rescheduling proactive refresh');
-      DioClient().scheduleTokenRefresh(_token!);
+    } finally {
+      _resumeCheckInProgress = false;
     }
   }
 
@@ -104,79 +114,59 @@ class UserProvider with ChangeNotifier, WidgetsBindingObserver {
     final dioClient = DioClient();
     dioClient.setCallbacks(
       onTokensRefreshed: (newAccessToken, newRefreshToken, newExpiry) async {
-        await updateTokens(newAccessToken, newRefreshToken, newExpiry);
+        await _auth.notifyTokenRefreshed(
+            newAccessToken, newRefreshToken, newExpiry);
+        await updateLocalTokenState();
       },
       onSessionExpired: () async {
+        await _auth.notifySessionExpired();
         await clearUserData();
       },
     );
   }
 
+  Future<void> updateLocalTokenState() async {
+    DioClient().setToken(_auth.token ?? '');
+    DioClient().setRefreshToken(_auth.refreshToken ?? '');
+  }
+
   bool get isInitializing => _isInitializing;
+  AuthStatus get authStatus => _authStatus;
 
   Future<void> _init() async {
-    await _loadTokenFromCache();
+    await _auth.initialize();
+    await _loadUserFromCache();
     _isInitializing = false;
     log('UserProvider init complete - user: ${_currentUser?.username}, role: ${_currentUser?.role}');
     notifyListeners();
   }
 
-  Future<void> _loadTokenFromCache() async {
-    final savedToken = CacheHelper.getString(key: 'auth_token');
-    log('Checking for cached token: ${savedToken != null ? "found" : "not found"}');
-    if (savedToken != null) {
-      // Validate token structure before using
-      if (JwtHelper.extractExpiry(savedToken) == null) {
-        log('Cached token is malformed, clearing');
-        await clearUserData();
-        return;
-      }
-
-      _token = savedToken;
-      _api.setToken(_token!);
-      log('Token loaded from cache');
-
-      final savedRefreshToken = CacheHelper.getString(key: 'refresh_token');
-      if (savedRefreshToken != null) {
-        _refreshToken = savedRefreshToken;
-        _api.setRefreshToken(_refreshToken!);
-        log('Refresh token loaded from cache');
-      }
-
-      final savedExpiry = CacheHelper.getInt(key: 'token_expiry');
-      if (savedExpiry != null) {
-        _tokenExpiry = DateTime.fromMillisecondsSinceEpoch(savedExpiry);
-        if (_tokenExpiry!.isBefore(DateTime.now())) {
-          log('Access token expired, attempting refresh on startup...');
-          if (_refreshToken != null) {
-            final result = await _attemptRefreshOnStartup();
-            if (result == RefreshResult.success) {
-              log('Token refreshed successfully on startup');
-              await _restoreCachedUser();
-              return;
-            }
-            if (result == RefreshResult.rejected) {
-              log('Refresh token rejected by server on startup, clearing session');
-              await clearUserData();
-              return;
-            }
-            // Transient error: keep tokens, start periodic timer for retries
-            log('Startup refresh failed (transient), keeping session — periodic timer will retry');
-            DioClient().scheduleTokenRefresh(_token!);
-            await _restoreCachedUser();
-            return;
-          } else {
-            log('No refresh token available, clearing tokens');
-          }
-          await clearUserData();
-          return;
+  Future<void> _loadUserFromCache() async {
+    final savedUserData = CacheHelper.getString(key: 'current_user');
+    if (savedUserData != null) {
+      try {
+        final userMap = jsonDecode(savedUserData);
+        _currentUser = UserModel.fromJson(userMap);
+        log('User data restored from cache: ${_currentUser?.displayName}');
+        if (_auth.token != null) {
+          DioClient().scheduleTokenRefresh(_auth.token!);
         }
-        log('Token expiry restored: $_tokenExpiry');
+      } catch (e) {
+        log('Failed to parse cached user data: $e');
+        await clearUserData();
       }
+    } else if (_auth.isAuthenticated) {
+      log('No cached user data but auth tokens exist, clearing session');
+      await clearUserData();
+    }
+  }
 
-      await _restoreCachedUser();
-    } else {
-      log('No cached token found');
+  void _loadCurrentUserFromCache() {
+    final savedUserData = CacheHelper.getString(key: 'current_user');
+    if (savedUserData != null) {
+      try {
+        _currentUser = UserModel.fromJson(jsonDecode(savedUserData));
+      } catch (_) {}
     }
   }
 
@@ -184,68 +174,16 @@ class UserProvider with ChangeNotifier, WidgetsBindingObserver {
     final savedUserData = CacheHelper.getString(key: 'current_user');
     if (savedUserData != null) {
       try {
-        final userMap = jsonDecode(savedUserData);
-        _currentUser = UserModel.fromJson(userMap);
-        log('User data restored from cache: ${_currentUser?.displayName}, role: ${_currentUser?.role}');
-        DioClient().scheduleTokenRefresh(_token!);
+        _currentUser = UserModel.fromJson(jsonDecode(savedUserData));
+        if (_auth.token != null) {
+          DioClient().scheduleTokenRefresh(_auth.token!);
+        }
+        notifyListeners();
       } catch (e) {
         log('Failed to parse cached user data: $e');
         await clearUserData();
       }
-    } else {
-      log('No cached user data found, clearing tokens');
-      await clearUserData();
     }
-  }
-
-  Future<RefreshResult> _attemptRefreshOnStartup() async {
-    if (_refreshToken == null) return RefreshResult.rejected;
-    try {
-      final response = await _api.refreshToken(refreshToken: _refreshToken!);
-
-      final newAccessToken = response['token'] as String?;
-      final newRefreshToken = response['refreshToken'] as String?;
-
-      if (newAccessToken == null) return RefreshResult.rejected;
-
-      _token = newAccessToken;
-      _api.setToken(newAccessToken);
-      await _saveTokenToCache(newAccessToken);
-
-      if (newRefreshToken != null) {
-        _refreshToken = newRefreshToken;
-        _api.setRefreshToken(newRefreshToken);
-        await _saveRefreshTokenToCache(newRefreshToken);
-      }
-
-      final exp = JwtHelper.extractExpiry(newAccessToken);
-      if (exp != null) {
-        _tokenExpiry = DateTime.fromMillisecondsSinceEpoch(exp * 1000);
-        await CacheHelper.saveData(
-            key: 'token_expiry', value: _tokenExpiry!.millisecondsSinceEpoch);
-        DioClient().scheduleTokenRefresh(newAccessToken);
-      }
-
-      return RefreshResult.success;
-    } on DioException catch (e) {
-      final statusCode = e.response?.statusCode;
-      log('Refresh on startup failed: status=$statusCode, error: $e');
-      if (statusCode == 401 || statusCode == 403) {
-        return RefreshResult.rejected;
-      }
-      return RefreshResult.transient;
-    } catch (e) {
-      log('Refresh on startup failed (non-Dio): $e');
-      return RefreshResult.transient;
-    }
-  }
-
-  Future<void> _saveTokenToCache(String token) async {
-    await CacheHelper.saveData(key: 'auth_token', value: token);
-  }
-
-  Future<void> _saveRefreshTokenToCache(String refreshToken) async {
-    await CacheHelper.saveData(key: 'refresh_token', value: refreshToken);
   }
 
   Future<void> _saveUserToCache(UserModel user) async {
@@ -253,20 +191,8 @@ class UserProvider with ChangeNotifier, WidgetsBindingObserver {
         key: 'current_user', value: jsonEncode(user.toJson()));
   }
 
-  Future<void> _clearTokenFromCache() async {
-    await CacheHelper.removeData(key: 'auth_token');
-    await CacheHelper.removeData(key: 'refresh_token');
-    await CacheHelper.removeData(key: 'token_expiry');
+  Future<void> _clearUserCache() async {
     await CacheHelper.removeData(key: 'current_user');
-  }
-
-  Future<void> refreshAndNotify(String token, UserModel user) async {
-    _token = token;
-    _currentUser = user;
-    _api.setToken(token);
-    await _saveTokenToCache(token);
-    await _saveUserToCache(user);
-    notifyListeners();
   }
 
   UserModel? get currentUser => _currentUser;
@@ -275,40 +201,17 @@ class UserProvider with ChangeNotifier, WidgetsBindingObserver {
   bool get isUsersLoading => _isUsersLoading;
   bool get isAnyLoading => _isLoading || _isUsersLoading;
   String? get error => _error;
-  String? get token => _token;
-  String? get refreshToken => _refreshToken;
-  DateTime? get tokenExpiry => _tokenExpiry;
+  String? get token => _auth.token;
+  String? get refreshToken => _auth.refreshToken;
+  DateTime? get tokenExpiry => _auth.tokenExpiry;
 
   Future<void> clearUserData() async {
-    _token = null;
-    _refreshToken = null;
-    _tokenExpiry = null;
     _currentUser = null;
     _users = [];
     _error = null;
-    _api.clearToken();
-    _api.clearRefreshToken();
+    await _auth.clearSession();
+    await _clearUserCache();
     DioClient().cancelTimer();
-    await _clearTokenFromCache();
-    notifyListeners();
-  }
-
-  Future<void> updateTokens(String newAccessToken, String newRefreshToken,
-      DateTime? newExpiry) async {
-    _token = newAccessToken;
-    _refreshToken = newRefreshToken;
-    _tokenExpiry = newExpiry;
-    _api.setToken(newAccessToken);
-    _api.setRefreshToken(newRefreshToken);
-    await _saveTokenToCache(newAccessToken);
-    await _saveRefreshTokenToCache(newRefreshToken);
-    if (newExpiry != null) {
-      await CacheHelper.saveData(
-          key: 'token_expiry', value: newExpiry.millisecondsSinceEpoch);
-    }
-    if (_currentUser != null) {
-      await _saveUserToCache(_currentUser!);
-    }
     notifyListeners();
   }
 
@@ -321,7 +224,6 @@ class UserProvider with ChangeNotifier, WidgetsBindingObserver {
   }) async {
     _setLoading(true);
     notifyListeners();
-
     try {
       await _api.signUp(
         displayName: displayName,
@@ -345,47 +247,33 @@ class UserProvider with ChangeNotifier, WidgetsBindingObserver {
   }) async {
     _setLoading(true);
     notifyListeners();
-
     try {
       final response = await _api.signIn(
         username: username,
         password: password,
       );
-      log('SignIn response: $response');
-      _token = response['token'];
-
-      // Validate token structure before using
-      if (_token == null || JwtHelper.extractExpiry(_token!) == null) {
+      log('SignIn response received');
+      final token = response['token'] as String?;
+      if (token == null || JwtHelper.extractExpiry(token) == null) {
         log('Server returned malformed token, sign-in failed');
         _error = 'Invalid server response';
-        _token = null;
         return;
       }
 
-      _api.setToken(_token!);
-
-      if (response['refreshToken'] != null) {
-        _refreshToken = response['refreshToken'];
-        _api.setRefreshToken(_refreshToken!);
-        await _saveRefreshTokenToCache(_refreshToken!);
-      } else {
+      final refreshToken = response['refreshToken'] as String?;
+      if (refreshToken == null) {
         log('WARNING: Backend did not return a refreshToken. Auto-refresh will not work.');
       }
 
-      await _saveTokenToCache(_token!);
-
-      final exp = JwtHelper.extractExpiry(_token!);
-      if (exp != null) {
-        _tokenExpiry = DateTime.fromMillisecondsSinceEpoch(exp * 1000);
-        await CacheHelper.saveData(
-            key: 'token_expiry', value: _tokenExpiry!.millisecondsSinceEpoch);
-        log('Token expiry extracted: $_tokenExpiry');
-        DioClient().scheduleTokenRefresh(_token!);
+      await _auth.setTokensFromSignIn(token, refreshToken ?? '');
+      await updateLocalTokenState();
+      if (_auth.token != null) {
+        DioClient().scheduleTokenRefresh(_auth.token!);
       }
 
       _currentUser = UserModel.fromJson(response);
       await _saveUserToCache(_currentUser!);
-      log('Current user set: ${_currentUser?.displayName}, role: ${_currentUser?.role}, department: ${_currentUser?.department}');
+      log('Current user set: ${_currentUser?.displayName}');
       _error = null;
     } on DioException catch (e) {
       log('SignIn error: ${e.response?.statusCode} - ${e.response?.data}');
@@ -406,27 +294,16 @@ class UserProvider with ChangeNotifier, WidgetsBindingObserver {
 
   Future<void> signOut() async {
     try {
-      await _api.signOut(refreshToken: _refreshToken);
-      _api.clearToken();
-      _api.clearRefreshToken();
+      await _api.signOut(refreshToken: _auth.refreshToken);
     } catch (e) {
       // Ignore signout API error
     }
-    _token = null;
-    _refreshToken = null;
-    _tokenExpiry = null;
-    _currentUser = null;
-    _users = [];
-    _error = null;
-    DioClient().cancelTimer();
-    await _clearTokenFromCache();
-    notifyListeners();
+    await clearUserData();
   }
 
   Future<void> fetchAllUsers() async {
     _setUsersLoading(true);
     notifyListeners();
-
     try {
       _users = await _api.getAllUsers();
       _error = null;
@@ -441,7 +318,6 @@ class UserProvider with ChangeNotifier, WidgetsBindingObserver {
   Future<void> fetchUserById(int id) async {
     _setUsersLoading(true);
     notifyListeners();
-
     try {
       _currentUser = await _api.getUserById(id);
       _error = null;
@@ -456,7 +332,6 @@ class UserProvider with ChangeNotifier, WidgetsBindingObserver {
   Future<void> fetchUsersByDepartment(String department) async {
     _setUsersLoading(true);
     notifyListeners();
-
     try {
       _users = await _api.getUsersByDepartment(department);
       _error = null;
@@ -471,7 +346,6 @@ class UserProvider with ChangeNotifier, WidgetsBindingObserver {
   Future<void> fetchUsersByRole(String role) async {
     _setUsersLoading(true);
     notifyListeners();
-
     try {
       _users = await _api.getUsersByRole(role);
       _error = null;
@@ -485,10 +359,8 @@ class UserProvider with ChangeNotifier, WidgetsBindingObserver {
 
   Future<void> fetchEnabledUsersByRole(String role, bool enabled) async {
     log('fetchEnabledUsersByRole called - role: $role, enabled: $enabled');
-
     _isUsersLoading = true;
     notifyListeners();
-
     try {
       _users = await _api.getEnabledUsersByRole(role, enabled);
       log('Users fetched successfully: ${_users.length}');
@@ -504,24 +376,18 @@ class UserProvider with ChangeNotifier, WidgetsBindingObserver {
 
   Future<void> setUserEnabled(int id, bool enabled) async {
     log('setUserEnabled called - id: $id, enabled: $enabled');
-
     _isLoading = true;
     notifyListeners();
-
     try {
       await _api.setUserEnabled(id, enabled);
-
       final index = _users.indexWhere((u) => u.id == id);
       log('Index found: $index');
-
       if (index != -1) {
         _users[index] = _users[index].copyWith(enabled: enabled);
       }
-
       if (_currentUser?.id == id) {
         _currentUser = _currentUser!.copyWith(enabled: enabled);
       }
-
       _error = null;
     } catch (e) {
       log('Error in setUserEnabled: $e');
@@ -535,7 +401,6 @@ class UserProvider with ChangeNotifier, WidgetsBindingObserver {
   Future<void> deleteUser(int id) async {
     _setLoading(true);
     notifyListeners();
-
     try {
       await _api.deleteUser(id);
       _users.removeWhere((u) => u.id == id);
@@ -554,7 +419,6 @@ class UserProvider with ChangeNotifier, WidgetsBindingObserver {
   }) async {
     _setLoading(true);
     notifyListeners();
-
     try {
       await _api.changePassword(
         currentPassword: currentPassword,
@@ -575,7 +439,6 @@ class UserProvider with ChangeNotifier, WidgetsBindingObserver {
   }) async {
     _setLoading(true);
     notifyListeners();
-
     try {
       await _api.forgotPassword(
         username: username,
